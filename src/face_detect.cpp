@@ -19,19 +19,21 @@
 using namespace cv;
 using namespace std;
 
-
-int detectAndDisplay(Mat frame, CascadeClassifier &face_cascade)
+/**
+* Detects the number of faces
+* @param frame The frame which faces are detected in
+* @param face_cascade The classifier to detect faces
+* @return Number of faces in the frame
+*/
+int detect_faces(Mat frame, CascadeClassifier &face_cascade)
 {
-
-    Mat frame_gray;
-    cvtColor( frame, frame_gray, COLOR_BGR2GRAY );
-    equalizeHist( frame_gray, frame_gray );
-    std::vector<Rect> faces;
-    face_cascade.detectMultiScale( frame_gray, faces );	
-    for ( size_t i = 0; i < faces.size(); i++ )
-    {
-
-	 cv::putText(frame, 
+  Mat frame_gray;
+  cvtColor(frame, frame_gray, COLOR_BGR2GRAY);
+  equalizeHist(frame_gray, frame_gray);
+  std::vector<Rect> faces;
+  face_cascade.detectMultiScale(frame_gray, faces);	
+  for (size_t i = 0; i < faces.size(); i++) {
+    cv::putText(frame, 
             to_string(i+1),
             cv::Point(faces[i].x+(faces[i].width/2),faces[i].y - 10), 
             cv::FONT_HERSHEY_COMPLEX_SMALL, 
@@ -39,13 +41,24 @@ int detectAndDisplay(Mat frame, CascadeClassifier &face_cascade)
             cv::Scalar(255,255,255), 
             1, 
             cv:: LINE_AA);
-	 
-
-	rectangle( frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar(0, 0, 255), 3, LINE_8);
-        Mat faceROI = frame_gray( faces[i] );
+    
+    rectangle(frame, Point(faces[i].x, faces[i].y), Point(faces[i].x + faces[i].width, faces[i].y + faces[i].height), Scalar(0, 0, 255), 3, LINE_8);
+    Mat faceROI = frame_gray(faces[i]);
 	}
-	
-    imshow( "Capture - Face detection", frame );
-    imwrite("test_detect.png", frame);
-    return (faces.size());
+  return (faces.size());
+}
+
+int main(int argc, char *argv[]) {
+  std::string classifier_path = "/home/punisher/Documents/courses/Embsys/Class/OpenCV-20220613/installation/OpenCV-master/share/opencv4/haarcascades/haarcascade_frontalcatface.xml";
+  CascadeClassifier face_cascade;
+  cv::VideoCapture camera(0);
+  if (!camera.isOpened()) {
+      std::cerr << "ERROR: Could not open camera" << std::endl;
+      return EXIT_FAILURE;
+  }
+
+  if(!face_cascade.load(classifier_path.c_str())) {
+    cout << "--(!)Error loading face cascade\n";
+    return EXIT_FAILURE;
+  };
 }
