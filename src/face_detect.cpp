@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <ctime>
 #include <face_detect.h>
+#include <mysql_helper.h>
 
 using namespace cv;
 using namespace std;
@@ -61,4 +62,14 @@ int main(int argc, char *argv[]) {
     cout << "--(!)Error loading face cascade\n";
     return EXIT_FAILURE;
   };
+
+  MySQL *mysql_connection = NULL;
+  std::string user = "omid";
+  std::string password = "123456";
+  std::string host_name = "localhost";
+  std::string database_name = "emb";
+  if(connect_to_db(mysql_connection, user, password, host_name, database_name)) {
+    std::cerr << "Error in " << __FILE__ << ":" << __LINE__ << ":" << " Connot connect to the database\n";
+    return EXIT_FAILURE;
+  }
 }
