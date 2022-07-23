@@ -27,7 +27,7 @@ using namespace std;
 * @param face_cascade The classifier to detect faces
 * @return Number of faces in the frame
 */
-int detect_faces(Mat frame, CascadeClassifier &face_cascade)
+int detect_faces(cv::Mat frame, cv::CascadeClassifier &face_cascade)
 {
   Mat frame_gray;
   cvtColor(frame, frame_gray, COLOR_BGR2GRAY);
@@ -70,5 +70,18 @@ int main(int argc, char *argv[]) {
   std::string host_name = "localhost";
   std::string database_name = "emb";
   CHECK(connect_to_db(mysql_connection, user, password, host_name, database_name),
-   "Cannot connect to database", std::cerr);
+   "Cannot connect to database", std::cerr)
+
+  cv::Mat frame;
+  int num_faces = 0, prev_num_faces;
+  char mysql_query_msg[MYSQL_QUERY_MSG_MAX_LEN];
+  while(true) {
+    camera >> frame;
+    prev_num_faces = num_faces;
+    num_faces = detect_faces(frame, &face_cascade);
+    if(num_faces != prev_num_faces) {
+      sprintf(mysql_query_msg, "INSERT INTO face_table(ts, num_faces) VALUES (NOW(), %d)", num_faces);
+      CHECK(mysql_query(mysql_connection, mysql_query_msg), "Cannot insert into database", std::cerr)
+    }
+  }
 }

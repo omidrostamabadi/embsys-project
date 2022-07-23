@@ -21,6 +21,8 @@
 using namespace cv;
 using namespace std;
 
+const size_t MYSQL_QUERY_MSG_MAX_LEN = 200;
+
 int detectAndDisplay(Mat frame, CascadeClassifier &face_cascade);
 
 #endif
