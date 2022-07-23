@@ -21,7 +21,8 @@
 using namespace cv;
 using namespace std;
 
-const size_t MYSQL_QUERY_MSG_MAX_LEN = 200;
+const size_t MYSQL_QUERY_MSG_MAX_LEN = 200; // Maximum length of query
+static const std::string PROG_NAME = "face_detector"; // Used for logging purposes
 
 int detectAndDisplay(Mat frame, CascadeClassifier &face_cascade);
 

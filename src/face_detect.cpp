@@ -15,8 +15,7 @@
 #include <stdio.h>
 #include <ctime>
 #include <face_detect.h>
-#include <mysql_helper.h>
-#include <error_helper.h>
+#include <helper.h>
 
 using namespace cv;
 using namespace std;
@@ -64,7 +63,7 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   };
 
-  MySQL *mysql_connection = NULL;
+  MYSQL *mysql_connection = mysql_init(NULL);
   std::string user = "omid";
   std::string password = "123456";
   std::string host_name = "localhost";
@@ -78,7 +77,7 @@ int main(int argc, char *argv[]) {
   while(true) {
     camera >> frame;
     prev_num_faces = num_faces;
-    num_faces = detect_faces(frame, &face_cascade);
+    num_faces = detect_faces(frame, face_cascade);
     if(num_faces != prev_num_faces) {
       sprintf(mysql_query_msg, "INSERT INTO face_table(ts, num_faces) VALUES (NOW(), %d)", num_faces);
       CHECK(mysql_query(mysql_connection, mysql_query_msg), "Cannot insert into database", std::cerr)
