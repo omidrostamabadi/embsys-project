@@ -29,7 +29,12 @@ enum MQTT_SERV_CODES {
   SERVER_RES_NUM_FACES
 };
 
-char *remove_last_char(char *in) {
+/**
+ * Removes the last character from the string if it's a new line ('\n') character
+ * @param in Input string in c str format
+ * @return Returns the modified string
+*/
+char *remove_last_new_line(char *in) {
   int last_index = strlen(in) - 1;
   if(in[last_index] == '\n')
     in[last_index] = '\0';
@@ -53,7 +58,7 @@ time_t TMP_TIMER_VAR;
  * @param file The file to write the log to
  * @param program The name of the program writing the log
 */
-#define LOG(msg, file, program) TMP_TIMER_VAR = time(0); file << "(" << program << "): " << msg << " [" << remove_last_char(ctime(&TMP_TIMER_VAR)) << "]" << std::endl;
+#define LOG(msg, file, program) TMP_TIMER_VAR = time(0); file << "(" << program << "): " << msg << " [" << remove_last_new_line(ctime(&TMP_TIMER_VAR)) << "]" << std::endl;
 
 /**
  * Connect to MySQL database with specified parameteres
