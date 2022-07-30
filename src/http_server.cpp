@@ -23,6 +23,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <sys/stat.h>
 #include "opencv2/objdetect.hpp"
 #include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
@@ -203,6 +204,12 @@ private:
     //         });
     // }
 
+    bool check_file_request() {
+      std::cout << "Looking for " << request_.target() << std::endl;
+      bool exs = (access((std::string(".") + std::string(request_.target())).c_str(), F_OK) != -1);
+      return exs;
+    }
+
     // Construct a response message based on the program state.
     void
     create_response()
@@ -212,6 +219,7 @@ private:
       std::string file_name = "test.png";
       std::string file_abs_path = wd + photo_path + file_name;
       beast::error_code ec;
+      http::file_body::value_type file;
         if(request_.target() == "/capture-photo")
         {
           curr_frame = get_current_frame();
@@ -248,9 +256,16 @@ private:
         }
         else
         {
+          if(check_file_request()) {
+            LOG("File exists", std::cout, "HTTP SERVER")
+          }
+          else {
+            LOG("File cannot be found", std::cout, "HTTP SERVER")
+            goto bad_resp;
+          }
+
           LOG("Sending file", std::cout, "HTTP SERVER")
           is_file = true;
-          http::file_body::value_type file;
           file.open((photo_path + file_name).c_str(), beast::file_mode::read, ec);
           file_response_.result(http::status::ok);
           file_response_.keep_alive(false);
@@ -258,10 +273,13 @@ private:
           file_response_.set(http::field::content_type, "image/png");
           file_response_.body() = std::move(file);
           file_response_.prepare_payload();
-          // response_.result(http::status::not_found);
-          // response_.set(http::field::content_type, "image/*");
-          // // beast::ostream(response_.body()) << "File not found\r\n";
-          // beast::ostream(response_.body()) << curr_frame << "\r";
+          return;
+
+          bad_resp:
+          response_.result(http::status::not_found);
+          response_.set(http::field::content_type, "text/html");
+          beast::ostream(response_.body()) << "File not found\r\n";
+          LOG("Sent bad response", std::cout, "HTTP SERVER")
         }
     }
 
