@@ -242,7 +242,7 @@ void http_server(int argc, char* argv[])
     try
     {
       std::cout << "Going to sleep for 3 seconds\n";
-      sleep(3);
+      // sleep(3);
       CHECK_VOID(init_camera(), "Cannot init camera", std::cerr)
       // init_camera();
         // CHECK_VOID command line arguments.

@@ -6,6 +6,7 @@ project(hw6)
 find_package(OpenCV REQUIRED)
 find_package(PahoMqttCpp REQUIRED)
 find_package(Boost REQUIRED)
+set (CMAKE_CXX_STANDARD 11)
 
 
 include_directories(${OpenCV_INCLUDE_DIRS})

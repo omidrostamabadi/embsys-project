@@ -6,6 +6,10 @@
 #include <thread>
 #include <vector>
 #include <helper.h>
+#include <mutex>
+
+cv::VideoCapture camera;
+std::mutex cam_mtx;
 
 int main(int argc, char *argv[]) {
   std::vector<std::thread> threads;

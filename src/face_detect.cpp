@@ -19,7 +19,6 @@
 
 using namespace cv;
 using namespace std;
-cv::VideoCapture camera;
 
 /**
 * Detects the number of faces
