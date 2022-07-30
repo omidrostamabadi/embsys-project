@@ -19,6 +19,7 @@
 
 using namespace cv;
 using namespace std;
+cv::VideoCapture camera;
 
 /**
 * Detects the number of faces
@@ -49,7 +50,7 @@ int detect_faces(cv::Mat frame, cv::CascadeClassifier &face_cascade)
   return (faces.size());
 }
 
-int main(int argc, char *argv[]) {
+void face_detector() {
   std::string classifier_path = "/home/punisher/Documents/courses/Embsys/Class/OpenCV-20220613/installation/OpenCV-master/share/opencv4/haarcascades/haarcascade_frontalcatface.xml";
   CascadeClassifier face_cascade;
   if(camera.isOpened())
@@ -65,7 +66,7 @@ int main(int argc, char *argv[]) {
 
   if(!face_cascade.load(classifier_path.c_str())) {
     cout << "--(!)Error loading face cascade\n";
-    return EXIT_FAILURE;
+    return;
   };
 
   MYSQL *mysql_connection = mysql_init(NULL);
@@ -73,7 +74,7 @@ int main(int argc, char *argv[]) {
   std::string password = "123456";
   std::string host_name = "localhost";
   std::string database_name = "emb";
-  CHECK(connect_to_db(mysql_connection, user, password, host_name, database_name),
+  CHECK_VOID(connect_to_db(mysql_connection, user, password, host_name, database_name),
    "Cannot connect to database", std::cerr)
 
   cv::Mat frame;
@@ -84,8 +85,9 @@ int main(int argc, char *argv[]) {
     prev_num_faces = num_faces;
     num_faces = detect_faces(frame, face_cascade);
     if(num_faces != prev_num_faces) {
+      LOG("Number of faces changed", std::cout, "FACE DETECTOR")
       sprintf(mysql_query_msg, "INSERT INTO face_table(ts, num_faces) VALUES (NOW(), %d)", num_faces);
-      CHECK(mysql_query(mysql_connection, mysql_query_msg), "Cannot insert into database", std::cerr)
+      CHECK_VOID(mysql_query(mysql_connection, mysql_query_msg), "Cannot insert into database", std::cerr)
     }
   }
 }

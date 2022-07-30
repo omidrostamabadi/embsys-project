@@ -1,3 +1,6 @@
+#ifndef HELPER_H
+#define HELPER_H
+
 #include <mysql/mysql.h>
 #include <unistd.h>
 #include <string>
@@ -28,7 +31,7 @@ const std::vector<mqtt::string> topics = {"req/temp", "res/temp", "req/numfaces"
 const std::string CPU_TEMP_FILE = "/sys/class/thermal/thermal_zone5/temp";
 const size_t MAX_MQTT_PAYLOAD = 500;
 const size_t MAX_MYSQL_QUERY = 500;
-cv::VideoCapture camera;
+extern cv::VideoCapture camera;
 
 enum MQTT_SERV_CODES {
   SERVER_REQ_TMP = 0,
@@ -42,12 +45,16 @@ enum MQTT_SERV_CODES {
  * @param in Input string in c str format
  * @return Returns the modified string
 */
-char *remove_last_new_line(char *in) {
+static char *remove_last_new_line(char *in) {
   int last_index = strlen(in) - 1;
   if(in[last_index] == '\n')
     in[last_index] = '\0';
   return in;
 }
+
+void face_detector();
+void http_server(int argc, char* argv[]);
+void mqtt_server();
 
 /**
  * Print error message to file with additional info on the name of the file and the line that error takes place
@@ -57,8 +64,10 @@ char *remove_last_new_line(char *in) {
 */
 #define CHECK(call, msg, file) if(call) {file << "Error in " << __FILE__ << ":" << __LINE__ << ": " << msg << std::endl; return EXIT_FAILURE;}
 
+#define CHECK_VOID(call, msg, file) if(call) {file << "Error in " << __FILE__ << ":" << __LINE__ << ": " << msg << std::endl; return;}
+
 /* Used for temporarily save the result of time(0) */
-time_t TMP_TIMER_VAR;
+static time_t TMP_TIMER_VAR;
 
 /**
  * Write a log message to a file with timestamp and the program writing the log
@@ -68,7 +77,7 @@ time_t TMP_TIMER_VAR;
 */
 #define LOG(msg, file, program) TMP_TIMER_VAR = time(0); file << "(" << program << "): " << msg << " [" << remove_last_new_line(ctime(&TMP_TIMER_VAR)) << "]" << std::endl;
 
-int init_camera() {
+static int init_camera() {
   if(camera.isOpened())
     return EXIT_SUCCESS;
   camera.open(0);
@@ -77,7 +86,7 @@ int init_camera() {
   return EXIT_SUCCESS;
 }
 
-cv::Mat get_current_frame() {
+static cv::Mat get_current_frame() {
   cv::Mat tmp_frame;
   camera >> tmp_frame;
   return tmp_frame;
@@ -92,7 +101,7 @@ cv::Mat get_current_frame() {
  * @param database_name The name of the database to connect
  * @return Returns 0 on success, 1 otherwise
 */
-int connect_to_db(MYSQL *mysql_connection, std::string user, std::string password, std::string host_name,
+static int connect_to_db(MYSQL *mysql_connection, std::string user, std::string password, std::string host_name,
  std::string database_name) {
   MYSQL *mysql_connection_ret = NULL;
   mysql_connection_ret = mysql_real_connect(mysql_connection, host_name.c_str(), user.c_str(), password.c_str(),
@@ -115,7 +124,7 @@ int connect_to_db(MYSQL *mysql_connection, std::string user, std::string passwor
  * @param con_opts Connection options
  * @return Returns 0 on success, 1 otherwise
 */
-int create_new_mqtt_client(mqtt::client **client, mqtt::string server_uri, mqtt::string client_id,
+static int create_new_mqtt_client(mqtt::client **client, mqtt::string server_uri, mqtt::string client_id,
  mqtt::connect_options *con_opts) {
   CHECK(!(*client = new mqtt::client(server_uri, client_id)), "Could not create MQTT client", std::cerr)
   (*client)->connect(*con_opts).get_server_uri().data();
@@ -127,7 +136,7 @@ int create_new_mqtt_client(mqtt::client **client, mqtt::string server_uri, mqtt:
  * @param client The client that subscribes to topics
  * @return 0 on success, 1 otherwise
 */
-int server_subscribe_topics(mqtt::client *client) {
+static int server_subscribe_topics(mqtt::client *client) {
   for(auto topic = topics.begin(); topic != topics.end(); topic++) {
     client->subscribe(*topic);
   }
@@ -138,7 +147,7 @@ int server_subscribe_topics(mqtt::client *client) {
  * Get the CPU temperature 
  * @return Current CPU temperature [C]
 */
-double get_cpu_temp() {
+static double get_cpu_temp() {
   std::ifstream temp_file;
   temp_file.open(CPU_TEMP_FILE, std::ios::in);
   CHECK(!temp_file.is_open(), "Cannot open CPU temperature file", std::cerr)
@@ -148,7 +157,7 @@ double get_cpu_temp() {
   return (double) temp / 1000;
 }
 
-double get_cpu_temp_from_db(MYSQL *mysql_connection) {
+static double get_cpu_temp_from_db(MYSQL *mysql_connection) {
   char mysql_query[MAX_MYSQL_QUERY];
   sprintf(mysql_query, "SELECT temp FROM temp_table ORDER BY id DESC LIMIT 1");
   CHECK(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
@@ -160,7 +169,7 @@ double get_cpu_temp_from_db(MYSQL *mysql_connection) {
   return temp;
 }
 
-int get_num_faces_from_db(MYSQL *mysql_connection) {
+static int get_num_faces_from_db(MYSQL *mysql_connection) {
   char mysql_query[MAX_MYSQL_QUERY];
   sprintf(mysql_query, "SELECT num_faces FROM face_table ORDER BY id DESC LIMIT 1");
   CHECK(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
@@ -171,3 +180,5 @@ int get_num_faces_from_db(MYSQL *mysql_connection) {
   int num_faces = atoi(row[0]);
   return num_faces;
 }
+
+#endif /* ifdef HELPER_H */

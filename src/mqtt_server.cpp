@@ -20,14 +20,14 @@
 #include <mysql/mysql.h>
 #include <helper.h>
 
-int main() {
+void mqtt_server() {
   /* Init MQTT */
   mqtt::client *client;
   mqtt::connect_options connOpts;
   connOpts.set_clean_session(false);
   connOpts.set_user_name(user_name);
   connOpts.set_password(password);
-  CHECK(create_new_mqtt_client(&client, MQTT_SERVER_URI, MQTT_CLIENT_ID, &connOpts),
+  CHECK_VOID(create_new_mqtt_client(&client, MQTT_SERVER_URI, MQTT_CLIENT_ID, &connOpts),
    "Could not create MQTT client", std::cerr)
 
   /* Subscribe to some topics */
@@ -39,7 +39,7 @@ int main() {
   std::string password = "123456";
   std::string host_name = "localhost";
   std::string database_name = "emb";
-  CHECK(connect_to_db(mysql_connection, user, password, host_name, database_name),
+  CHECK_VOID(connect_to_db(mysql_connection, user, password, host_name, database_name),
    "Cannot connect to database", std::cerr)
 
   while(true) {
@@ -71,5 +71,5 @@ int main() {
     }
   }
   mysql_close(mysql_connection);
-  return 0;
+  return;
 }

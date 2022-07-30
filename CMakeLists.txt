@@ -24,11 +24,7 @@ target_include_directories(boost_beast
 
 set(MY_LIBS_1 mysqlclient pthread dl z ssl crypto resolv m rt paho-mqtt3c paho-mqttpp3 boost_beast)
 
-add_executable(face_detector src/face_detect.cpp)
-add_executable(mqtt_manager src/mqtt_server.cpp)
-add_executable(http_server src/http_server.cpp)
-target_link_libraries(face_detector ${OpenCV_LIBS} ${MY_LIBS_1})
-target_link_libraries(mqtt_manager ${OpenCV_LIBS} ${MY_LIBS_1})
-target_link_libraries(http_server ${OpenCV_LIBS} ${MY_LIBS_1})
+add_executable(main src/tmp_main.cpp src/face_detect.cpp src/http_server.cpp src/mqtt_server.cpp)
+target_link_libraries(main ${OpenCV_LIBS} ${MY_LIBS_1})
 # target_link_libraries(main ${OpenCV_LIBS} paho-mqtt3c paho-mqttpp3)
 # target_link_libraries(sub_main paho-mqtt3c paho-mqttpp3 ${MY_LIBS_1})

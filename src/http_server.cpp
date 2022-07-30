@@ -76,7 +76,7 @@ public:
     start()
     {
         read_request();
-        check_deadline();
+        CHECK_VOID_deadline();
     }
 
 private:
@@ -206,9 +206,9 @@ private:
             });
     }
 
-    // Check whether we have spent enough time on this connection.
+    // CHECK_VOID whether we have spent enough time on this connection.
     void
-    check_deadline()
+    CHECK_VOID_deadline()
     {
         auto self = shared_from_this();
 
@@ -237,14 +237,15 @@ http_server(tcp::acceptor& acceptor, tcp::socket& socket)
       });
 }
 
-int
-main(int argc, char* argv[])
+void http_server(int argc, char* argv[])
 {
     try
     {
-      CHECK(init_camera(), "Cannot init camera", std::cerr)
-      init_camera();
-        // Check command line arguments.
+      std::cout << "Going to sleep for 3 seconds\n";
+      sleep(3);
+      CHECK_VOID(init_camera(), "Cannot init camera", std::cerr)
+      // init_camera();
+        // CHECK_VOID command line arguments.
         if(argc != 3)
         {
             std::cerr << "Usage: " << argv[0] << " <address> <port>\n";
@@ -252,7 +253,7 @@ main(int argc, char* argv[])
             std::cerr << "    receiver 0.0.0.0 80\n";
             std::cerr << "  For IPv6, try:\n";
             std::cerr << "    receiver 0::0 80\n";
-            return EXIT_FAILURE;
+            return;
         }
 
         auto const address = net::ip::make_address(argv[1]);
@@ -269,6 +270,6 @@ main(int argc, char* argv[])
     catch(std::exception const& e)
     {
         std::cerr << "Error: " << e.what() << std::endl;
-        return EXIT_FAILURE;
+        return;
     }
 }
