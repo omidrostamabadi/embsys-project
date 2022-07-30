@@ -23,11 +23,29 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include "opencv2/objdetect.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/videoio.hpp"
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/opencv.hpp>
+#include <helper.h>
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
 using tcp = boost::asio::ip::tcp;       // from <boost/asio/ip/tcp.hpp>
+
+// cv::Mat get_current_frame() {
+//   cv::VideoCapture cam(0);
+//   if(!cam.isOpened()) {
+//     std::cerr << __FILE__ << ":" << __LINE__ << " :Could not open camera\n";
+//   }
+//   cv::Mat ret_mat;
+//   cam >> ret_mat;
+//   return ret_mat;
+// }
 
 namespace my_program_state
 {
@@ -131,19 +149,22 @@ private:
     void
     create_response()
     {
-        if(request_.target() == "/count")
+        if(request_.target() == "/capture-photo")
         {
             response_.set(http::field::content_type, "text/html");
             beast::ostream(response_.body())
                 << "<html>\n"
-                <<  "<head><title>Request count</title></head>\n"
+                <<  "<head><title>Capture Photo</title></head>\n"
                 <<  "<body>\n"
-                <<  "<h1>Request count</h1>\n"
+                <<  "<h1>Photo</h1>\n"
                 <<  "<p>There have been "
                 <<  my_program_state::request_count()
                 <<  " requests so far.</p>\n"
                 <<  "</body>\n"
                 <<  "</html>\n";
+            cv::Mat curr_frame = get_current_frame();
+            cv::imwrite("test.png", curr_frame);
+            std::cout << "Saved the image\n";
         }
         else if(request_.target() == "/time")
         {
@@ -221,6 +242,8 @@ main(int argc, char* argv[])
 {
     try
     {
+      CHECK(init_camera(), "Cannot init camera", std::cerr)
+      init_camera();
         // Check command line arguments.
         if(argc != 3)
         {

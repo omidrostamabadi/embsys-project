@@ -4,7 +4,7 @@
 #include "opencv2/videoio.hpp"
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
-#include<opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
 #include <iostream>
 #include <cstdlib>
 #include <string>
@@ -52,11 +52,16 @@ int detect_faces(cv::Mat frame, cv::CascadeClassifier &face_cascade)
 int main(int argc, char *argv[]) {
   std::string classifier_path = "/home/punisher/Documents/courses/Embsys/Class/OpenCV-20220613/installation/OpenCV-master/share/opencv4/haarcascades/haarcascade_frontalcatface.xml";
   CascadeClassifier face_cascade;
-  cv::VideoCapture camera(0);
-  if (!camera.isOpened()) {
-      std::cerr << "ERROR: Could not open camera" << std::endl;
-      return EXIT_FAILURE;
-  }
+  if(camera.isOpened())
+    std::cout << "Cam is opened!\n";
+  else
+    std::cout << "Cam not opened\n";
+  init_camera();
+  // cv::VideoCapture camera(0);
+  // if (!camera.isOpened()) {
+  //     std::cerr << "ERROR: Could not open camera" << std::endl;
+  //     return EXIT_FAILURE;
+  // }
 
   if(!face_cascade.load(classifier_path.c_str())) {
     cout << "--(!)Error loading face cascade\n";

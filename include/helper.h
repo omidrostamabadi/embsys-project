@@ -12,6 +12,13 @@
 #include <mqtt/topic.h>
 #include <mqtt/iclient_persistence.h>
 #include <mqtt/properties.h>
+#include "opencv2/objdetect.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/imgproc.hpp"
+#include "opencv2/videoio.hpp"
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/opencv.hpp>
 
 const mqtt::string MQTT_SERVER_URI = "localhost:1883";
 const mqtt::string MQTT_CLIENT_ID = "SERVER";
@@ -21,6 +28,7 @@ const std::vector<mqtt::string> topics = {"req/temp", "res/temp", "req/numfaces"
 const std::string CPU_TEMP_FILE = "/sys/class/thermal/thermal_zone5/temp";
 const size_t MAX_MQTT_PAYLOAD = 500;
 const size_t MAX_MYSQL_QUERY = 500;
+cv::VideoCapture camera;
 
 enum MQTT_SERV_CODES {
   SERVER_REQ_TMP = 0,
@@ -59,6 +67,21 @@ time_t TMP_TIMER_VAR;
  * @param program The name of the program writing the log
 */
 #define LOG(msg, file, program) TMP_TIMER_VAR = time(0); file << "(" << program << "): " << msg << " [" << remove_last_new_line(ctime(&TMP_TIMER_VAR)) << "]" << std::endl;
+
+int init_camera() {
+  if(camera.isOpened())
+    return EXIT_SUCCESS;
+  camera.open(0);
+  CHECK(!camera.isOpened(), "Could not open camera", std::cerr)
+  std::cout << "Opened camera successfully\n";
+  return EXIT_SUCCESS;
+}
+
+cv::Mat get_current_frame() {
+  cv::Mat tmp_frame;
+  camera >> tmp_frame;
+  return tmp_frame;
+}
 
 /**
  * Connect to MySQL database with specified parameteres
