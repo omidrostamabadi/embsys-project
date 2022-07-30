@@ -24,15 +24,37 @@
 #include <opencv2/opencv.hpp>
 #include <mutex>
 
+/* MQTT server address:port */
 const mqtt::string MQTT_SERVER_URI = "localhost:1883";
+
+/* Client ID that mqtt_server uses to subscribe/publish */
 const mqtt::string MQTT_CLIENT_ID = "SERVER";
-const mqtt::string_ref user_name("omid"); // MQTT username, not DB
-const mqtt::buffer_ref<char> password("12345678"); // MQTT pass, not DB
+
+/* MQTT username for secure connection */
+const mqtt::string_ref user_name("omid");
+
+/* MQTT password for secure connection */
+const mqtt::buffer_ref<char> password("12345678");
+
+/* Topics that is used in MQTT connections. Topics come in pair with odd indices 
+  used for REQ category (that come from other clients to mqtt_server and ask for info) and
+  even indices used for RES category (that correspond to the REQ topic just before them. Server uses
+  this topics to send response to requests coming from other clients). */
 const std::vector<mqtt::string> topics = {"req/temp", "res/temp", "req/numfaces", "res/numfaces"};
+
+/* The file used to read CPU temperature */
 const std::string CPU_TEMP_FILE = "/sys/class/thermal/thermal_zone5/temp";
+
+/* Maximum MQTT payload */
 const size_t MAX_MQTT_PAYLOAD = 500;
+
+/* Maximum MYSQL query string length that can be generated */
 const size_t MAX_MYSQL_QUERY = 500;
+
+/* System camera to get pictures from. This is used by FACE DETECTOR to process the stream and 
+  detect faces and by HTTP server to capture and return the picture upon get/capture-photo request */
 extern cv::VideoCapture camera;
+/* Make access and init on camera object thread safe */
 extern std::mutex cam_mtx;
 
 enum MQTT_SERV_CODES {
@@ -54,8 +76,13 @@ static char *remove_last_new_line(char *in) {
   return in;
 }
 
+/* Face derector system thread function */
 void face_detector();
+
+/* HTTP system thread function */
 void http_server(int argc, char* argv[]);
+
+/* MQTT system thread function */
 void mqtt_server();
 
 /**
@@ -66,6 +93,10 @@ void mqtt_server();
 */
 #define CHECK(call, msg, file) if(call) {file << "Error in " << __FILE__ << ":" << __LINE__ << ": " << msg << std::endl; return EXIT_FAILURE;}
 
+/**
+ * This does the exact same job as CHECK except that it does not returns anything, 
+ *  so it can be used in void functions
+*/
 #define CHECK_VOID(call, msg, file) if(call) {file << "Error in " << __FILE__ << ":" << __LINE__ << ": " << msg << std::endl; return;}
 
 /* Used for temporarily save the result of time(0) */
@@ -79,8 +110,13 @@ static time_t TMP_TIMER_VAR;
 */
 #define LOG(msg, file, program) TMP_TIMER_VAR = time(0); file << "(" << program << "): " << msg << " [" << remove_last_new_line(ctime(&TMP_TIMER_VAR)) << "]" << std::endl;
 
+/**
+ * Initialize camera system
+ * @return 0 on success, 1 otherwise
+*/
 static int init_camera() {
   int ret_code = EXIT_SUCCESS;
+  try {
   cam_mtx.lock();
   if(camera.isOpened()) {
     ret_code = EXIT_SUCCESS;
@@ -91,14 +127,22 @@ static int init_camera() {
     ret_code = EXIT_FAILURE;
     goto finish;
   }
-  // CHECK(!camera.isOpened(), "Could not open camera", std::cerr)
-  std::cout << "Opened camera successfully\n";
+  LOG("Camera opened successfully", std::cout, "HELPER FILE")
+  }
+  catch(const std::exception &exc) {
+    ret_code = EXIT_FAILURE;
+    goto finish;
+  }
 
   finish:
   cam_mtx.unlock();
   return ret_code;
 }
 
+/**
+ * Gets the current camera frame
+ * @return Current camera frame
+*/
 static cv::Mat get_current_frame() {
   cv::Mat tmp_frame;
   camera >> tmp_frame;
@@ -170,11 +214,16 @@ static double get_cpu_temp() {
   return (double) temp / 1000;
 }
 
+/**
+ * Get the last temperature stored in db
+ * @param mysql_connection Active MYSQL connection
+ * @return Temperature in the last database record
+*/
 static double get_cpu_temp_from_db(MYSQL *mysql_connection) {
   char mysql_query[MAX_MYSQL_QUERY];
   sprintf(mysql_query, "SELECT temp FROM temp_table ORDER BY id DESC LIMIT 1");
   CHECK(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
-   "Cannot perform MYSQL query for number of faces", std::cerr)
+   "Cannot perform MYSQL query for temperature", std::cerr)
   MYSQL_RES *result = mysql_store_result(mysql_connection);
   MYSQL_ROW row;
   row = mysql_fetch_row(result);
@@ -182,6 +231,11 @@ static double get_cpu_temp_from_db(MYSQL *mysql_connection) {
   return temp;
 }
 
+/**
+ * Get the last number of faces stored in db
+ * @param mysql_connection Active MYSQL connection
+ * @return Number of faces in the last database record
+*/
 static int get_num_faces_from_db(MYSQL *mysql_connection) {
   char mysql_query[MAX_MYSQL_QUERY];
   sprintf(mysql_query, "SELECT num_faces FROM face_table ORDER BY id DESC LIMIT 1");
