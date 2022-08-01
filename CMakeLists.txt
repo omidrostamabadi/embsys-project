@@ -6,6 +6,7 @@ project(hw6)
 find_package(OpenCV REQUIRED)
 find_package(PahoMqttCpp REQUIRED)
 find_package(Boost REQUIRED)
+find_package(SDL2 REQUIRED)
 set (CMAKE_CXX_STANDARD 11)
 
 
@@ -25,7 +26,8 @@ target_include_directories(boost_beast
 
 set(MY_LIBS_1 mysqlclient pthread dl z ssl crypto resolv m rt paho-mqtt3c paho-mqttpp3 boost_beast)
 
-add_executable(main src/tmp_main.cpp src/face_detect.cpp src/http_server.cpp src/mqtt_server.cpp)
-target_link_libraries(main ${OpenCV_LIBS} ${MY_LIBS_1})
+add_executable(main src/tmp_main.cpp src/face_detect.cpp src/http_server.cpp src/mqtt_server.cpp 
+  src/audio_manager.cpp)
+target_link_libraries(main ${OpenCV_LIBS} ${SDL2_LIBRARIES} ${MY_LIBS_1})
 # target_link_libraries(main ${OpenCV_LIBS} paho-mqtt3c paho-mqttpp3)
 # target_link_libraries(sub_main paho-mqtt3c paho-mqttpp3 ${MY_LIBS_1})

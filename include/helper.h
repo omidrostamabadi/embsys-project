@@ -85,6 +85,8 @@ void http_server(int argc, char* argv[]);
 /* MQTT system thread function */
 void mqtt_server();
 
+void audio_manager();
+
 /**
  * Print error message to file with additional info on the name of the file and the line that error takes place
  * @param call A call to a function to check its return value
