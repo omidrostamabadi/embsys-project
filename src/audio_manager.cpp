@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <string>
+#include <fstream>
 #include <thread>
 #include <atomic>
 #include <chrono>
@@ -21,7 +22,9 @@ const int RECORDING_BUFFER_SECONDS = 16;    //buffersize, providing a safe pad o
 
 int gRecordingDeviceCount = 0;          //number of recording devices in host machine
 SDL_AudioSpec gReceivedRecordingSpec;   //the available spec for recording
-SDL_AudioSpec gReceivedPlaybackSpec;    //the available spec for playback
+uint32_t sound_threshold = 15000;
+std::string file_name = "eng.txt";
+std::ofstream eng_file;
 
 //Audio device IDs
 SDL_AudioDeviceID recordingDeviceId = 0;
@@ -34,11 +37,12 @@ Uint32 gBufferByteMaxPosition = 0;      //defines an upper bound for gBufferByte
 Uint32 gBufferByteRecordedPosition = 0; //defines the place where the recording has stopped
 
 void audioRecordingCallback( void*, Uint8*, int);
-void audioPlaybackCallback( void*, Uint8*, int);
 void setRecordingSpec(SDL_AudioSpec*);
-void setPlaybackSpec(SDL_AudioSpec*);
 void close();                           //frees the allocated buffers and terminates SDL
 void reportError(const char*);          //printing proper error messages to the screen
+void calculate_energy();
+
+
 
 void start_recording();
 void stop_recording();
@@ -79,7 +83,18 @@ void audio_manager() {
     gRecordingBuffer = new Uint8[gBufferByteSize];
     memset(gRecordingBuffer, 0, gBufferByteSize);
 
+    eng_file.open(file_name, std::ios::out);
+    
+
     start_recording();
+
+    while(true) {
+      // start_recording();
+      // // stop_recording();
+      // calculate_energy();
+      // gBufferBytePosition = 0;
+      usleep(1 * 1000);
+    }
     
     //main loop of the program
     /*while(!quit) {
@@ -208,11 +223,14 @@ void setRecordingSpec(SDL_AudioSpec* desired) {
     desired -> callback = audioRecordingCallback;
 }
 
-void audioRecordingCallback( void* userdata, Uint8* stream, int len ) {
+void audioRecordingCallback(void* userdata, Uint8* stream, int len) {
     // from stream to buffer
-    std::cout << "Got " << len << " Bytes callback\n";
-    memcpy( &gRecordingBuffer[ gBufferBytePosition ], stream, len );
+    // std::cout << "Got " << len << " Bytes callback\n";
+    memcpy(&gRecordingBuffer[0], stream, len);
     gBufferBytePosition += len;
+    // stop_recording();
+    calculate_energy();
+    gBufferBytePosition = 0;
 }
 
 void close() {
@@ -229,6 +247,7 @@ void reportError(const char* msg) { //reports the proper error message then term
 }
 
 void start_recording() {
+    // LOG("Now started recording", std::cout, "AUDIO MANAGER")
     gBufferBytePosition = 0;                                //reseting the buffer
     gBufferByteRecordedPosition = 0;                        //reseting the buffer
     SDL_PauseAudioDevice(recordingDeviceId, SDL_FALSE);     //start recording
@@ -236,6 +255,26 @@ void start_recording() {
 
 void stop_recording() {
     SDL_PauseAudioDevice(recordingDeviceId, SDL_TRUE);
-    gBufferByteRecordedPosition = gBufferBytePosition;
-    gBufferBytePosition = 0; //preparing for playback
+    // gBufferByteRecordedPosition = gBufferBytePosition;
+    // gBufferBytePosition = 0; //preparing for playback
+}
+
+void calculate_energy() {
+  static uint32_t win_size = 20000;
+  uint32_t l_start, l_end, l_energy;
+  for(int i = 0; i < gBufferBytePosition; i += win_size / 2) {
+    l_start = i; 
+    l_end = i + win_size;
+    if(l_end >= gBufferBytePosition)
+      return;
+    l_energy = 0;
+    for(uint32_t j = l_start; j < l_end; j++) {
+      l_energy += gRecordingBuffer[j] * gRecordingBuffer[j];
+    }
+    l_energy /= (l_end - l_start);
+    eng_file << l_energy << std::endl;
+    if(l_energy > sound_threshold) {
+      std::cout << "Energy is " << l_energy << std::endl;
+    }
+  }
 }
