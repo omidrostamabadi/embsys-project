@@ -22,7 +22,7 @@ const int RECORDING_BUFFER_SECONDS = 16;    //buffersize, providing a safe pad o
 
 int gRecordingDeviceCount = 0;          //number of recording devices in host machine
 SDL_AudioSpec gReceivedRecordingSpec;   //the available spec for recording
-uint32_t sound_threshold = 100;
+uint32_t sound_threshold = 160;
 std::string file_name = "eng.txt";
 std::ofstream eng_file;
 
@@ -84,12 +84,18 @@ void audio_manager() {
     memset(gRecordingBuffer, 0, gBufferByteSize);
 
     eng_file.open(file_name, std::ios::out);
-    
+    SDL_Event e;
 
     start_recording();
 
     while(true) {
-      // start_recording();
+      SDL_PollEvent(&e);
+      if(e.type == SDL_QUIT) {
+        LOG("EXITING", std::cout, "AUDIO MANAGER")
+        close();
+        break;
+      }
+        // start_recording();
       // // stop_recording();
       // calculate_energy();
       // gBufferBytePosition = 0;
@@ -268,12 +274,14 @@ void calculate_energy() {
   static int spms = bpms / 4;
   static uint32_t win_size = 512;
   float *aud_buffer = (float*) gRecordingBuffer;
+  /* Samples are float */
+  uint32_t buffer_sample_index = gBufferBytePosition / 4;
   uint32_t l_start, l_end;
   float l_energy;
-  for(int i = 0; i < gBufferBytePosition; i += win_size / 2) {
+  for(int i = 0; i < buffer_sample_index; i += win_size / 2) {
     l_start = i; 
     l_end = i + win_size;
-    if(l_end >= gBufferBytePosition)
+    if(l_end >= buffer_sample_index)
       return;
     l_energy = 0;
     for(uint32_t j = l_start; j < l_end; j++) {
@@ -284,9 +292,9 @@ void calculate_energy() {
     eng_file << l_energy << std::endl;
     if(l_energy > sound_threshold) {
       std::cout << "Energy is " << l_energy << std::endl;
-      /* Skip 250ms in time. Since a loud sound in real world usually lasts for a long enough time to
-        trigger multiple up thresholds and we do not want to report more than 4 events a second */
-      i += spms / 4; 
+      /* Skip 500ms in time. Since a loud sound in real world usually lasts for a long enough time to
+        trigger multiple up thresholds and we do not want to report more than 2 events a second */
+      i += spms; 
     }
   }
 }
