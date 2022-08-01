@@ -22,7 +22,7 @@ const int RECORDING_BUFFER_SECONDS = 16;    //buffersize, providing a safe pad o
 
 int gRecordingDeviceCount = 0;          //number of recording devices in host machine
 SDL_AudioSpec gReceivedRecordingSpec;   //the available spec for recording
-uint32_t sound_threshold = 15000;
+uint32_t sound_threshold = 100;
 std::string file_name = "eng.txt";
 std::ofstream eng_file;
 
@@ -260,8 +260,16 @@ void stop_recording() {
 }
 
 void calculate_energy() {
-  static uint32_t win_size = 20000;
-  uint32_t l_start, l_end, l_energy;
+  /* Bytes per milisecond. gBufferByteSize is enough for RECORDING_BUFFER_SECONDS of bytes, so
+    for one second it should be divided by that value. Then to convert second -> milisecond the number
+    should further be divided by 1000. */
+  static int bpms = gBufferByteSize / RECORDING_BUFFER_SECONDS / 1000;
+  /* Each sample is a float, so number of samples per second is 1/4 the bpms. */
+  static int spms = bpms / 4;
+  static uint32_t win_size = 512;
+  float *aud_buffer = (float*) gRecordingBuffer;
+  uint32_t l_start, l_end;
+  float l_energy;
   for(int i = 0; i < gBufferBytePosition; i += win_size / 2) {
     l_start = i; 
     l_end = i + win_size;
@@ -269,12 +277,16 @@ void calculate_energy() {
       return;
     l_energy = 0;
     for(uint32_t j = l_start; j < l_end; j++) {
-      l_energy += gRecordingBuffer[j] * gRecordingBuffer[j];
+      l_energy += aud_buffer[j] * aud_buffer[j];
     }
     l_energy /= (l_end - l_start);
+    l_energy *= 1e4;
     eng_file << l_energy << std::endl;
     if(l_energy > sound_threshold) {
       std::cout << "Energy is " << l_energy << std::endl;
+      /* Skip 250ms in time. Since a loud sound in real world usually lasts for a long enough time to
+        trigger multiple up thresholds and we do not want to report more than 4 events a second */
+      i += spms / 4; 
     }
   }
 }
