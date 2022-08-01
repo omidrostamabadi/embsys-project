@@ -32,6 +32,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/opencv.hpp>
 #include <helper.h>
+#include <mysql/mysql.h>
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -43,6 +44,8 @@ std::string wd = "/home/punisher/Documents/courses/Embsys/project/build/";
 
 /* The directory to save temporary photos at. It is relative to wd */
 std::string photo_path = "photo/";
+
+MYSQL *mysql_connection = NULL;
 
 namespace my_program_state
 {
@@ -254,6 +257,50 @@ private:
                 <<  "</body>\n"
                 <<  "</html>\n";
         }
+        else if(request_.target() == "/num-faces")
+        {
+            LOG("Request to report last 10 records for number of faces", std::cout,
+              "HTTP SERVER")
+            /* Get results from the database */
+            char mysql_query[MAX_MYSQL_QUERY];
+            sprintf(mysql_query, "SELECT * FROM face_table ORDER BY id DESC LIMIT 10");
+            CHECK_VOID(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
+            "Cannot perform MYSQL query for number of faces", std::cerr)
+            MYSQL_RES *result = mysql_store_result(mysql_connection);
+            MYSQL_ROW row;
+            // row = mysql_fetch_row(result);
+
+            response_.set(http::field::content_type, "text/html");
+            beast::ostream(response_.body())
+                <<  "<html>\n"
+                << "<style> \
+                    table, th, td { \
+                      border:1px solid black; \
+                    } \
+                    </style>"
+                <<  "<head><title>Number of Faces</title></head>\n"
+                <<  "<body>\n"
+                <<  "<h1>Last 10 records in the database</h1>\n"
+                << "<table>"
+                << "<tr>"
+                << "<th>" << "ID" << "</th>"
+                << "<th>" << "Time Stamp" << "</th>"
+                << "<th>" << "Number of Faces" << "</th>"
+                << "</tr>";
+                for(int i = 0; i < 10; i++) {
+                  row = mysql_fetch_row(result);
+                  beast::ostream(response_.body()) << "<tr>" 
+                  << "<td style=\"text-align:center\">" << row[0] << "</td>"
+                  << "<td style=\"text-align:center\">" << row[1] << "</td>" 
+                  << "<td style=\"text-align:center\">" << row[2] << "</td>"
+                  << "</tr>";
+                }
+                beast::ostream(response_.body()) << "</table>" << "<p>The current time is "
+                <<  my_program_state::now()
+                <<  " seconds since the epoch.</p>\n"
+                <<  "</body>\n"
+                <<  "</html>\n";
+        }
         else
         {
           if(check_file_request()) {
@@ -347,6 +394,15 @@ http_server(tcp::acceptor& acceptor, tcp::socket& socket)
 
 void http_server(int argc, char* argv[])
 {
+  /* Connect to database */
+  mysql_connection = mysql_init(NULL);
+  std::string user = "omid";
+  std::string password = "123456";
+  std::string host_name = "localhost";
+  std::string database_name = "emb";
+  CHECK_VOID(connect_to_db(mysql_connection, user, password, host_name, database_name),
+   "Cannot connect to database", std::cerr)
+
     try
     {
       if(mkdir((wd + photo_path).c_str(), S_IRWXU | S_IRWXG | S_IRWXO | S_IRUSR | S_IWUSR | S_IWGRP | S_IRGRP | S_IROTH | S_IWOTH)) {
