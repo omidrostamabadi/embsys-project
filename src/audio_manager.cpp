@@ -36,6 +36,9 @@ Uint32 gBufferBytePosition = 0;         //specifies the current location in gRec
 Uint32 gBufferByteMaxPosition = 0;      //defines an upper bound for gBufferBytePosition
 Uint32 gBufferByteRecordedPosition = 0; //defines the place where the recording has stopped
 
+/* Database variables */
+static MYSQL *mysql_connection;
+
 void audioRecordingCallback( void*, Uint8*, int);
 void setRecordingSpec(SDL_AudioSpec*);
 void close();                           //frees the allocated buffers and terminates SDL
@@ -86,137 +89,33 @@ void audio_manager() {
     eng_file.open(file_name, std::ios::out);
     SDL_Event e;
 
+    /* Connect to database */
+    mysql_connection = mysql_init(NULL);
+    std::string user = "omid";
+    std::string password = "123456";
+    std::string host_name = "localhost";
+    std::string database_name = "emb";
+    CHECK_VOID(connect_to_db(mysql_connection, user, password, host_name, database_name),
+    "Cannot connect to database", std::cerr)
+
     start_recording();
 
     while(true) {
       SDL_PollEvent(&e);
+
+      /* When ^C is pushed or main window is closed, SDL library catches SIGINT to perform a clean exit.
+        Once this event is generated, we perform a clean up and then end. */
       if(e.type == SDL_QUIT) {
         LOG("EXITING", std::cout, "AUDIO MANAGER")
         close();
-        break;
+        return;
       }
-        // start_recording();
-      // // stop_recording();
-      // calculate_energy();
-      // gBufferBytePosition = 0;
+
+      /* Time resolution of audio manager is not required to be sub-second, because there is no point in that.
+        It saves CPU a lot to let this thread sleep for a few hundereds of miliseconds since in practice 
+        a sound will at least last for 500 ms so we can catch that. */
       usleep(1 * 1000);
     }
-    
-    //main loop of the program
-    /*while(!quit) {
-        // check for events (e.g. key press)
-        while(SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT)
-				quit = true;
-		
-            if (e.type != SDL_KEYDOWN) continue; // proceed only if there is a key down
-            
-            short key = e.key.keysym.sym;
-
-            if (key == SDLK_q) //if q is pressed, exit
-                quit = true;
-            
-            next_state = get_next_state(current_state, key);
-
-            switch(current_state) {    
-                case WAITING:
-                    if (next_state == RECORDING) {
-                        start_recording();
-                    }
-                break;
-                
-                case RECORDING: 
-                    if (next_state == RECORDED) {
-                        stop_recording();
-                    }
-                    else if (next_state == PAUSE) {
-                        // to be implemented :p
-                    }
-                break;
-                
-                case RECORDED:
-                    if (next_state == PLAYBACK) {
-                        gBufferBytePosition = 0;                            //preparing for playback 
-                        SDL_PauseAudioDevice(playbackDeviceId, SDL_FALSE);  //start playback
-                    }
-                break;
-
-                default:
-                    quit = true;   
-                break;
-            }
-            current_state = next_state;
-            
-            // show menu if needed
-            switch(current_state) {
-                case WAITING: case RECORDING: case RECORDED: case PLAYBACK: case ERROR:
-                    show_menu(current_state);
-                default: break;
-            }
-        }
-
-        switch(current_state) {
-            case DEVICE_SELECTION:
-                std::cout<<"Select one of the devices listed above for recording: ";
-                //int index;
-                cin >> index;
-                if (index >= gRecordingDeviceCount) {
-                    std::cout<<"Error: out of range device selected."<<std::endl;
-                    exit(1);
-                }
-                std::cout << "Using " <<index << ": "<< SDL_GetAudioDeviceName(index, SDL_TRUE)<<" for recording"<<std::endl;
-                //SDL_AudioSpec desiredRecordingSpec, desiredPlaybackSpec;
-                setRecordingSpec(&desiredRecordingSpec);
-                setPlaybackSpec(&desiredPlaybackSpec);
-                //opening the device for recording
-                recordingDeviceId = SDL_OpenAudioDevice( SDL_GetAudioDeviceName( index, SDL_TRUE ), SDL_TRUE, 
-                &desiredRecordingSpec, &gReceivedRecordingSpec, SDL_AUDIO_ALLOW_FORMAT_CHANGE );
-                //opening the device for playback
-                playbackDeviceId = SDL_OpenAudioDevice( NULL, SDL_FALSE, 
-                &desiredPlaybackSpec, &gReceivedPlaybackSpec, SDL_AUDIO_ALLOW_FORMAT_CHANGE );
-                //calculating some audio quantities based on received spec for recording and playback
-                bytesPerSample = gReceivedRecordingSpec.channels * 
-                ( SDL_AUDIO_BITSIZE( gReceivedRecordingSpec.format ) / 8 );
-                bytesPerSecond = gReceivedRecordingSpec.freq * bytesPerSample;
-                gBufferByteSize = RECORDING_BUFFER_SECONDS * bytesPerSecond;
-                gBufferByteMaxPosition = MAX_RECORDING_SECONDS * bytesPerSecond;
-                gRecordingBuffer = new Uint8[ gBufferByteSize ];
-                memset( gRecordingBuffer, 0, gBufferByteSize );
-                current_state = WAITING;
-                show_menu(current_state);
-                break;
-            
-            case RECORDING:
-                //Lock callback
-                SDL_LockAudioDevice( recordingDeviceId );
-
-                //check if the buffer has reached maximum capacity
-                if ( gBufferBytePosition > gBufferByteMaxPosition ) {
-                    //Stop recording audio
-                    SDL_PauseAudioDevice( recordingDeviceId, SDL_TRUE ); //stop recording
-                    std::cout << "You reached recording limit!"<<std::endl;
-                    current_state = RECORDED;
-                    gBufferByteRecordedPosition = gBufferBytePosition;
-                }
-                SDL_UnlockAudioDevice( recordingDeviceId );
-                break;
-            
-            case PLAYBACK: //playing the recorded voice back
-                SDL_LockAudioDevice(playbackDeviceId);
-                if (gBufferBytePosition > gBufferByteRecordedPosition) { //stop playback
-                    SDL_PauseAudioDevice(playbackDeviceId, SDL_TRUE);
-                    current_state = RECORDED;
-                    show_menu(current_state);
-                    std::cout << "Finished playback\n";
-                }
-                SDL_UnlockAudioDevice(playbackDeviceId);
-                break; 
-            default:
-            break; 
-
-        }
-    }*/
-
     close();
 }
 
@@ -231,7 +130,6 @@ void setRecordingSpec(SDL_AudioSpec* desired) {
 
 void audioRecordingCallback(void* userdata, Uint8* stream, int len) {
     // from stream to buffer
-    // std::cout << "Got " << len << " Bytes callback\n";
     memcpy(&gRecordingBuffer[0], stream, len);
     gBufferBytePosition += len;
     // stop_recording();
@@ -253,7 +151,6 @@ void reportError(const char* msg) { //reports the proper error message then term
 }
 
 void start_recording() {
-    // LOG("Now started recording", std::cout, "AUDIO MANAGER")
     gBufferBytePosition = 0;                                //reseting the buffer
     gBufferByteRecordedPosition = 0;                        //reseting the buffer
     SDL_PauseAudioDevice(recordingDeviceId, SDL_FALSE);     //start recording
@@ -261,8 +158,13 @@ void start_recording() {
 
 void stop_recording() {
     SDL_PauseAudioDevice(recordingDeviceId, SDL_TRUE);
-    // gBufferByteRecordedPosition = gBufferBytePosition;
-    // gBufferBytePosition = 0; //preparing for playback
+}
+
+void insert_into_db(float energy) {
+  char mysql_query_msg[MAX_MYSQL_QUERY];
+  sprintf(mysql_query_msg, "INSERT INTO audio_table(ts, audio_energy) VALUES (NOW(), %.2f)", energy);
+  // CHECK_VOID(mysql_query(mysql_connection, mysql_query_msg), "Cannot insert into database", std::cerr)
+  mysql_real_query_nonblocking(mysql_connection, mysql_query_msg, strlen(mysql_query_msg));
 }
 
 void calculate_energy() {
@@ -291,10 +193,11 @@ void calculate_energy() {
     l_energy *= 1e4;
     eng_file << l_energy << std::endl;
     if(l_energy > sound_threshold) {
+      insert_into_db(l_energy);
       std::cout << "Energy is " << l_energy << std::endl;
       /* Skip 500ms in time. Since a loud sound in real world usually lasts for a long enough time to
         trigger multiple up thresholds and we do not want to report more than 2 events a second */
-      i += spms; 
+      i += spms * 5000; 
     }
   }
 }

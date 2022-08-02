@@ -14,7 +14,6 @@
 #include <cstring>
 #include <stdio.h>
 #include <ctime>
-#include <face_detect.h>
 #include <helper.h>
 
 using namespace cv;
@@ -78,7 +77,7 @@ void face_detector() {
 
   cv::Mat frame;
   int num_faces = 0, prev_num_faces;
-  char mysql_query_msg[MYSQL_QUERY_MSG_MAX_LEN];
+  char mysql_query_msg[MAX_MYSQL_QUERY];
   while(true) {
     camera >> frame;
     prev_num_faces = num_faces;
