@@ -257,77 +257,94 @@ private:
                 <<  "</body>\n"
                 <<  "</html>\n";
         }
-        else if(request_.target() == "/num-faces")
-        {
-            LOG("Request to report last 10 records for number of faces", std::cout,
-              "HTTP SERVER")
-            /* Get results from the database */
-            char mysql_query[MAX_MYSQL_QUERY];
-            sprintf(mysql_query, "SELECT * FROM face_table ORDER BY id DESC LIMIT 10");
-            CHECK_VOID(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
-            "Cannot perform MYSQL query for number of faces", std::cerr)
-            MYSQL_RES *result = mysql_store_result(mysql_connection);
-            MYSQL_ROW row;
-            // row = mysql_fetch_row(result);
-
-            response_.set(http::field::content_type, "text/html");
-            beast::ostream(response_.body())
-                <<  "<html>\n"
-                << "<style> \
-                    table, th, td { \
-                      border:1px solid black; \
-                    } \
-                    </style>"
-                <<  "<head><title>Number of Faces</title></head>\n"
-                <<  "<body>\n"
-                <<  "<h1>Last 10 records in the database</h1>\n"
-                << "<table>"
-                << "<tr>"
-                << "<th>" << "ID" << "</th>"
-                << "<th>" << "Time Stamp" << "</th>"
-                << "<th>" << "Number of Faces" << "</th>"
-                << "</tr>";
-                for(int i = 0; i < 10; i++) {
-                  row = mysql_fetch_row(result);
-                  beast::ostream(response_.body()) << "<tr>" 
-                  << "<td style=\"text-align:center\">" << row[0] << "</td>"
-                  << "<td style=\"text-align:center\">" << row[1] << "</td>" 
-                  << "<td style=\"text-align:center\">" << row[2] << "</td>"
-                  << "</tr>";
-                }
-                beast::ostream(response_.body()) << "</table>" << "<p>The current time is "
-                <<  my_program_state::now()
-                <<  " seconds since the epoch.</p>\n"
-                <<  "</body>\n"
-                <<  "</html>\n";
-        }
         else
         {
-          if(check_file_request()) {
-            LOG("File exists", std::cout, "HTTP SERVER")
-          }
-          else {
-            LOG("File cannot be found", std::cout, "HTTP SERVER")
-            goto bad_resp;
+          LOG("Request to report last n records for number of faces", std::cout,
+            "HTTP SERVER")
+          auto target = request_.target();
+          size_t loc = target.find_first_of('?', 0);
+          std::cout << "Loc = " << loc << std::endl;
+          std::string req_topic = target.substr(0, loc).to_string();
+          std::string num = target.substr(loc + 1).to_string();
+          std::cout << "Topic = " << req_topic << " Num = " << num << std::endl;
+          int n = atoi(num.c_str());
+          if(req_topic != "/num-faces" && req_topic != "/audio-energy") {
+            LOG(std::string("Unrecogonized topic: ") + req_topic, std::cout, "HTTP SERVER")
+            goto file_processing;
           }
 
-          LOG("Sending file", std::cout, "HTTP SERVER")
-          is_file = true;
-          file.open((photo_path + file_name).c_str(), beast::file_mode::read, ec);
-          file_response_.result(http::status::ok);
-          file_response_.keep_alive(false);
-          file_response_.set(http::field::server, "Beast");
-          file_response_.set(http::field::content_type, "image/png");
-          file_response_.body() = std::move(file);
-          file_response_.prepare_payload();
-          return;
+          /* Get results from the database */
+          char mysql_query[MAX_MYSQL_QUERY];
+          if(req_topic == "/num-faces")
+            sprintf(mysql_query, "SELECT * FROM face_table ORDER BY id DESC LIMIT %d", n);
+          else if(req_topic == "/audio-energy")
+            sprintf(mysql_query, "SELECT * FROM audio_table ORDER BY id DESC LIMIT %d", n);
+          CHECK_VOID(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
+          "Cannot perform MYSQL query for number of faces", std::cerr)
+          MYSQL_RES *result = mysql_store_result(mysql_connection);
+          MYSQL_ROW row;
 
-          bad_resp:
-          response_.result(http::status::not_found);
           response_.set(http::field::content_type, "text/html");
-          beast::ostream(response_.body()) << "File not found\r\n";
-          LOG("Sent bad response", std::cout, "HTTP SERVER")
+          beast::ostream(response_.body())
+              <<  "<html>\n"
+              << "<style> \
+                  table, th, td { \
+                    border:1px solid black; \
+                  } \
+                  </style>"
+              <<  "<head><title>Last " << n << " records of " << req_topic << "</title></head>\n"
+              <<  "<body>\n"
+              <<  "<h1>Last " << n << " records of " << req_topic << " in the database</h1>\n"
+              << "<table>"
+              << "<tr>"
+              << "<th>" << "ID" << "</th>"
+              << "<th>" << "Time Stamp" << "</th>";
+              if(req_topic == "/num-faces")
+                beast::ostream(response_.body()) << "<th>" << "Number of Faces" << "</th>";
+              else if(req_topic == "/audio-energy")
+                beast::ostream(response_.body()) << "<th>" << "Energy of Input Audio" << "</th>";
+              beast::ostream(response_.body()) << "</tr>";
+              for(int i = 0; i < n; i++) {
+                row = mysql_fetch_row(result);
+                beast::ostream(response_.body()) << "<tr>" 
+                << "<td style=\"text-align:center\">" << row[0] << "</td>"
+                << "<td style=\"text-align:center\">" << row[1] << "</td>" 
+                << "<td style=\"text-align:center\">" << row[2] << "</td>"
+                << "</tr>";
+              }
+              beast::ostream(response_.body()) << "</table>" << "<p>The current time is "
+              <<  my_program_state::now()
+              <<  " seconds since the epoch.</p>\n"
+              <<  "</body>\n"
+              <<  "</html>\n";
+
         }
+
+        file_processing:
+        if(check_file_request()) {
+          LOG("File exists", std::cout, "HTTP SERVER")
+        }
+        else {
+          LOG("File cannot be found", std::cout, "HTTP SERVER")
+          goto bad_resp;
+        }
+
+        LOG("Sending file", std::cout, "HTTP SERVER")
+        is_file = true;
+        file.open((photo_path + file_name).c_str(), beast::file_mode::read, ec);
+        file_response_.result(http::status::ok);
+        file_response_.keep_alive(false);
+        file_response_.set(http::field::server, "Beast");
+        file_response_.set(http::field::content_type, "image/png");
+        file_response_.body() = std::move(file);
+        file_response_.prepare_payload();
+        return;
+
+        bad_resp:
+        response_.result(http::status::not_found);
+        response_.set(http::field::content_type, "text/html");
+        beast::ostream(response_.body()) << "File not found\r\n";
+        LOG("Sent bad response", std::cout, "HTTP SERVER")
     }
 
     // Asynchronously transmit the response message.
