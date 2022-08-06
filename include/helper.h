@@ -40,7 +40,11 @@ const mqtt::buffer_ref<char> password("12345678");
   used for REQ category (that come from other clients to mqtt_server and ask for info) and
   even indices used for RES category (that correspond to the REQ topic just before them. Server uses
   this topics to send response to requests coming from other clients). */
-const std::vector<mqtt::string> topics = {"req/temp", "res/temp", "req/numfaces", "res/numfaces"};
+const std::vector<mqtt::string> topics = {"req/temp", "res/temp",
+                                         "req/numfaces", "res/numfaces",
+                                         "req/load", "res/load",
+                                         "req/audio", "res/audio",
+                                         "req/ble", "res/ble"};
 
 /* The file used to read CPU temperature */
 const std::string CPU_TEMP_FILE = "/sys/class/thermal/thermal_zone5/temp";
@@ -61,7 +65,13 @@ enum MQTT_SERV_CODES {
   SERVER_REQ_TMP = 0,
   SERVER_RES_TMP,
   SERVER_REQ_NUM_FACES,
-  SERVER_RES_NUM_FACES
+  SERVER_RES_NUM_FACES,
+  SERVER_REQ_LOAD,
+  SERVER_RES_LOAD,
+  SERVER_REQ_AUDIO,
+  SERVER_RES_AUDIO,
+  SERVER_REQ_BLE,
+  SERVER_RES_BLE
 };
 
 /**

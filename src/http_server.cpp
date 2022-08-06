@@ -268,7 +268,7 @@ private:
           std::string num = target.substr(loc + 1).to_string();
           std::cout << "Topic = " << req_topic << " Num = " << num << std::endl;
           int n = atoi(num.c_str());
-          if(req_topic != "/num-faces" && req_topic != "/audio-energy") {
+          if(req_topic != "/num-faces" && req_topic != "/audio-energy" && req_topic != "/ble-distance") {
             LOG(std::string("Unrecogonized topic: ") + req_topic, std::cout, "HTTP SERVER")
             goto file_processing;
           }
@@ -279,6 +279,8 @@ private:
             sprintf(mysql_query, "SELECT * FROM face_table ORDER BY id DESC LIMIT %d", n);
           else if(req_topic == "/audio-energy")
             sprintf(mysql_query, "SELECT * FROM audio_table ORDER BY id DESC LIMIT %d", n);
+          else if(req_topic == "/ble-distance")
+            sprintf(mysql_query, "SELECT * FROM ble_table ORDER BY id DESC LIMIT %d", n);
           CHECK_VOID(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
           "Cannot perform MYSQL query for number of faces", std::cerr)
           MYSQL_RES *result = mysql_store_result(mysql_connection);
@@ -303,6 +305,8 @@ private:
                 beast::ostream(response_.body()) << "<th>" << "Number of Faces" << "</th>";
               else if(req_topic == "/audio-energy")
                 beast::ostream(response_.body()) << "<th>" << "Energy of Input Audio" << "</th>";
+              else if(req_topic == "/ble-distance")
+                beast::ostream(response_.body()) << "<th>" << "Distance of BLE device" << "</th>";
               beast::ostream(response_.body()) << "</tr>";
               for(int i = 0; i < n; i++) {
                 row = mysql_fetch_row(result);
