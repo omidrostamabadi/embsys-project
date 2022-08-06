@@ -17,9 +17,11 @@ int main(int argc, char *argv[]) {
   threads.push_back(std::thread(http_server, argc, argv));
   threads.push_back(std::thread(mqtt_server));
   threads.push_back(std::thread(audio_manager));
+  threads.push_back(std::thread(ble_manager));
   std::cout << "Waiting for threads\n";
   threads[0].join();
   threads[1].join();
   threads[2].join();
   threads[3].join();
+  threads[4].join();
 }

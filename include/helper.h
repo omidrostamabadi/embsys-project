@@ -87,6 +87,8 @@ void mqtt_server();
 
 void audio_manager();
 
+void ble_manager();
+
 /**
  * Print error message to file with additional info on the name of the file and the line that error takes place
  * @param call A call to a function to check its return value
@@ -161,10 +163,10 @@ static cv::Mat get_current_frame() {
  * @return Returns 0 on success, 1 otherwise
 */
 static int connect_to_db(MYSQL *mysql_connection, std::string user, std::string password, std::string host_name,
- std::string database_name) {
+ std::string database_name, unsigned int port = 3306) {
   MYSQL *mysql_connection_ret = NULL;
   mysql_connection_ret = mysql_real_connect(mysql_connection, host_name.c_str(), user.c_str(), password.c_str(),
-   database_name.c_str(), 0, NULL, 0);
+   database_name.c_str(), port, NULL, 0);
   if(mysql_connection_ret == NULL) {
     std::cout << "Connection to database failed\n";
     std::cout << "Database input params:\n";
