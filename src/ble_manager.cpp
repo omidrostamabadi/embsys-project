@@ -23,7 +23,9 @@ double get_distance(int rssi) {
 }
 
 int  scan_ble_devices() {
-  std::string cmd = "sudo btmgmt find > " + out_file;
+  std::string cmd = "btmgmt find > " + out_file;
+  // std::string cmd = "echo This kossher mamad rssi -82 javadi Redmi 9 > " + out_file;
+  // std::string cmd = "bin/scan_devs.sh";
   return system(cmd.c_str());
 }
 
@@ -38,7 +40,7 @@ int find_device_rssi() {
 
   std::stringstream buf;
   buf << file.rdbuf();
-  std::string file_cont = buf.str();
+  std::string file_cont = buf.str(); std::cout << "Contents:\n" << file_cont << std::endl;
   size_t loc = file_cont.find(dev_name, 0);
   if(loc == std::string::npos) {
     LOG("Cannot find the device", std::cout, "BLE MANAGER")
