@@ -52,7 +52,7 @@ int find_device_rssi() {
   return rssi;
 }
 
-// static MYSQL *mysql_connection;
+// static MYSQL *mysql_connection2;
 
 void ble_manager() {
   // sleep(7);
@@ -69,19 +69,27 @@ void ble_manager() {
   //   std::cout << "Failed connecting to db :(\n";
   //   exit(EXIT_FAILURE);
   // }
-  MYSQL *mysql_connection;
-  mysql_connection = mysql_init(NULL);
+  MYSQL *mysql_connection2;
+  mysql_connection2 = mysql_init(NULL);
   std::string user = "omid";
   std::string password = "123456";
   std::string host_name = "localhost";
   std::string database_name = "emb";
-  CHECK_VOID(connect_to_db(mysql_connection, user, password, host_name, database_name),
-   "Cannot connect to database", std::cerr)
-  // connect_to_db(mysql_connection, user, password, host_name, database_name);
-  // MYSQL *mysql_connection_ret2 = mysql_real_connect(mysql_connection, host_name.c_str(), user.c_str(),
+  uint32_t port = 3306;
+  // CHECK_VOID(connect_to_db(mysql_connection2, user, password, host_name, database_name),
+  //  "Cannot connect to database", std::cerr)
+  MYSQL *mysql_connection_ret = NULL;
+  mysql_connection_ret = mysql_real_connect(mysql_connection2, host_name.c_str(), user.c_str(), password.c_str(),
+   database_name.c_str(), port, NULL, 0);
+  if(mysql_connection_ret == NULL) {
+    std::cerr << __FILE__ << ":" << __LINE__ << ": Connection to db failed\n";
+    return;
+  }
+  // connect_to_db(mysql_connection2, user, password, host_name, database_name);
+  // MYSQL *mysql_connection_ret2 = mysql_real_connect(mysql_connection2, host_name.c_str(), user.c_str(),
   //  password.c_str(), database_name.c_str(), 3306, NULL, 0);
-  std::cout << "ERRNO is " << mysql_errno(mysql_connection) << std::endl;
-  std::cout << "Error is " << mysql_error(mysql_connection) << std::endl;
+  std::cout << "ERRNO is " << mysql_errno(mysql_connection2) << std::endl;
+  std::cout << "Error is " << mysql_error(mysql_connection2) << std::endl;
   
   int rssi;
   double distance;
@@ -103,7 +111,7 @@ void ble_manager() {
     if(distance < min_distance) {
       LOG("Distance less than minimum", std::cout, "BLE MANAGER")
       sprintf(mysql_query_msg, "INSERT INTO ble_table(ts, dist) VALUES (NOW(), %.2f)", distance);
-      CHECK_VOID(mysql_query(mysql_connection, mysql_query_msg), "Cannot insert into database", std::cerr)
+      CHECK_VOID(mysql_query(mysql_connection2, mysql_query_msg), "Cannot insert into database", std::cerr)
     }
     std::cout << "RSSI is " << rssi << std::endl;
     std::cout << "Distance is " << distance << std::endl;
