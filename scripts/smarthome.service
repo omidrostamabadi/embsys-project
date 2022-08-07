@@ -1,0 +1,17 @@
+[Unit]
+Description=Smart Home Management
+Requires=mysql.service NetworkManager.service bluetooth.service
+After=multi-user.target mysql.service NetworkManager.service bluetooth.service
+ 
+[Service]
+Type=simple
+StandardInput=tty
+TTYPath=/dev/tty26
+ExecStart=/home/punisher/Documents/courses/Embsys/project/build/bin/main 0.0.0.0 8080
+WorkingDirectory=/home/punisher/Documents/courses/Embsys/project/build/
+StandardOutput=journal+console
+StandardError=journal+console
+Restart=on-failure 
+
+[Install]
+WantedBy=multi-user.target
