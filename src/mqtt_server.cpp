@@ -32,8 +32,8 @@ static double get_cpu_temp();
 void mqtt_server() {
   int status = system("touch load.txt");
   CHECK_VOID(status, "Cannot touch load.txt file", std::cerr)
-  cpu_load_file.open("load.txt", std::ios::out | std::ios::in);
-  CHECK_VOID(!cpu_load_file.is_open(), "Cannot open cpu load file", std::cerr)
+  // cpu_load_file.open(cpu_load_file_name, std::ios::out | std::ios::in);
+  // CHECK_VOID(!cpu_load_file.is_open(), "Cannot open cpu load file", std::cerr)
 
   /* Init MQTT */
   mqtt::client *client;
@@ -134,11 +134,13 @@ static double get_cpu_temp() {
 }
 
 double get_cpu_load() {
+  cpu_load_file.open(cpu_load_file_name, std::ios::out | std::ios::in);
   double ins_load;
   std::string cmd = std::string("top -n 1 | awk 'NR==3''{print $8}' > ") + cpu_load_file_name;
   system(cmd.c_str());
   cpu_load_file >> ins_load;
-  return ins_load;
+  cpu_load_file.close();
+  return (100 - ins_load);
 }
 
 /**
