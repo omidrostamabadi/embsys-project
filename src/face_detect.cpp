@@ -78,7 +78,7 @@ void face_detector() {
   cv::Mat frame;
   int num_faces = 0, prev_num_faces;
   char mysql_query_msg[MAX_MYSQL_QUERY];
-  while(true) {
+  while(!finish) {
     camera >> frame;
     prev_num_faces = num_faces;
     num_faces = detect_faces(frame, face_cascade);
@@ -88,4 +88,5 @@ void face_detector() {
       CHECK_VOID(mysql_query(mysql_connection, mysql_query_msg), "Cannot insert into database", std::cerr)
     }
   }
+  LOG("Exiting", std::cout, "FACE DETECTOR")
 }

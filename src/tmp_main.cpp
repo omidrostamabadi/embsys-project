@@ -10,6 +10,7 @@
 
 cv::VideoCapture camera;
 std::mutex cam_mtx;
+bool finish = false;
 
 int main(int argc, char *argv[]) {
   std::vector<std::thread> threads;

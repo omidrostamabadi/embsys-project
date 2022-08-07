@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <math.h>
+#include <signal.h>
 #include <mysql/mysql.h>
 #include <helper.h>
 
@@ -12,6 +13,7 @@ std::string out_file = "tmp.txt";
 
 const int meas_pow = -74;
 const int N = 2;
+const int DEV_NOT_FOUND = 1e6;
 
 const float min_distance = 1.0;
 
@@ -20,9 +22,9 @@ double get_distance(int rssi) {
   return dist;
 }
 
-void scan_ble_devices() {
+int  scan_ble_devices() {
   std::string cmd = "sudo btmgmt find > " + out_file;
-  system(cmd.c_str());
+  return system(cmd.c_str());
 }
 
 int find_device_rssi() {
@@ -38,6 +40,10 @@ int find_device_rssi() {
   buf << file.rdbuf();
   std::string file_cont = buf.str();
   size_t loc = file_cont.find(dev_name, 0);
+  if(loc == std::string::npos) {
+    LOG("Cannot find the device", std::cout, "BLE MANAGER")
+    return DEV_NOT_FOUND;
+  }
   size_t lloc = file_cont.rfind("rssi", loc);
   std::string rssi_str = file_cont.substr(lloc + 5, 10);
   size_t sp_loc = rssi_str.find(' ');
@@ -80,9 +86,19 @@ void ble_manager() {
   int rssi;
   double distance;
   char mysql_query_msg[MAX_MYSQL_QUERY];
-  while(true) {
-    scan_ble_devices();
+  int status;
+  while(!finish) {
+    status = scan_ble_devices();
+    std::cout << "Status is " << status << std::endl;
+    if(WIFSIGNALED(status) && (WTERMSIG(status) == SIGINT || WTERMSIG(status) == SIGQUIT)) {
+      finish = true;
+      LOG("Signaled", std::cout, "BLE MANAGER")
+      raise(SIGINT);
+      continue;
+    }
     rssi = find_device_rssi();
+    if(rssi == DEV_NOT_FOUND)
+      continue;
     distance = get_distance(rssi);
     if(distance < min_distance) {
       LOG("Distance less than minimum", std::cout, "BLE MANAGER")
@@ -92,4 +108,5 @@ void ble_manager() {
     std::cout << "RSSI is " << rssi << std::endl;
     std::cout << "Distance is " << distance << std::endl;
   }
+  LOG("Exiting", std::cout, "BLE MANAGER")
 }

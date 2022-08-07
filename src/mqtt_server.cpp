@@ -55,7 +55,7 @@ void mqtt_server() {
   CHECK_VOID(connect_to_db(mysql_connection, user, password, host_name, database_name),
    "Cannot connect to database", std::cerr)
 
-  while(true) {
+  while(!finish) {
     usleep(500 * 1000);
     auto msg = client->consume_message();
     if (msg) {
@@ -105,6 +105,7 @@ void mqtt_server() {
       std::cout << "Re-established connection" << std::endl;
     }
   }
+  LOG("Exiting", std::cout, "MQTT SERVER")
   mysql_close(mysql_connection);
   return;
 }

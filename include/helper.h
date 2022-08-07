@@ -61,6 +61,8 @@ extern cv::VideoCapture camera;
 /* Make access and init on camera object thread safe */
 extern std::mutex cam_mtx;
 
+extern bool finish;
+
 enum MQTT_SERV_CODES {
   SERVER_REQ_TMP = 0,
   SERVER_RES_TMP,

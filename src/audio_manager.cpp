@@ -100,7 +100,7 @@ void audio_manager() {
 
     start_recording();
 
-    while(true) {
+    while(!finish) {
       SDL_PollEvent(&e);
 
       /* When ^C is pushed or main window is closed, SDL library catches SIGINT to perform a clean exit.
@@ -108,6 +108,8 @@ void audio_manager() {
       if(e.type == SDL_QUIT) {
         LOG("EXITING", std::cout, "AUDIO MANAGER")
         close();
+        LOG("Setting finish flag", std::cout, "AUDIO MANAGER")
+        finish = true;
         return;
       }
 
@@ -116,6 +118,7 @@ void audio_manager() {
         a sound will at least last for 500 ms so we can catch that. */
       usleep(1 * 1000);
     }
+    LOG("Exiting", std::cout, "AUDIO MANAGER")
     close();
 }
 

@@ -410,6 +410,9 @@ http_server(tcp::acceptor& acceptor, tcp::socket& socket)
           if(!ec)
               std::make_shared<http_connection>(std::move(socket))->start();
           http_server(acceptor, socket);
+          if(!finish) {
+            return;
+          }
       });
 }
 
@@ -463,4 +466,5 @@ void http_server(int argc, char* argv[])
         std::cerr << "Error: " << e.what() << std::endl;
         return;
     }
+    LOG("Exiting", std::cout, "HTTP SERVER")
 }
