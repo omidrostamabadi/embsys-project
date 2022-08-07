@@ -29,7 +29,9 @@ static double get_audio_energy_from_db(MYSQL *mysql_connection);
 static double get_ble_from_db(MYSQL *mysql_connection);
 
 void mqtt_server() {
-  cpu_load_file.open(cpu_load_file_name, std::ios::out | std::ios::in);
+  int status = system("touch load.txt");
+  CHECK_VOID(status, "Cannot touch load.txt file", std::cerr)
+  cpu_load_file.open("load.txt", std::ios::out | std::ios::in);
   CHECK_VOID(!cpu_load_file.is_open(), "Cannot open cpu load file", std::cerr)
 
   /* Init MQTT */
