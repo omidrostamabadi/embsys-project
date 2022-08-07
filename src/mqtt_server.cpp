@@ -136,7 +136,7 @@ static double get_cpu_temp() {
 double get_cpu_load() {
   cpu_load_file.open(cpu_load_file_name, std::ios::out | std::ios::in);
   double ins_load;
-  std::string cmd = std::string("top -n 1 | awk 'NR==3''{print $8}' > ") + cpu_load_file_name;
+  std::string cmd = std::string("top -n 1 -b | awk 'NR==3''{print $8}' > ") + cpu_load_file_name;
   system(cmd.c_str());
   cpu_load_file >> ins_load;
   cpu_load_file.close();
