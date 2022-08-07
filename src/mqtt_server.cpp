@@ -27,6 +27,7 @@ std::fstream cpu_load_file;
 static double get_cpu_load();
 static double get_audio_energy_from_db(MYSQL *mysql_connection);
 static double get_ble_from_db(MYSQL *mysql_connection);
+static double get_cpu_temp();
 
 void mqtt_server() {
   int status = system("touch load.txt");
@@ -62,7 +63,7 @@ void mqtt_server() {
       /* Handle temperature request */
       if(msg->get_topic() == topics[SERVER_REQ_TMP]) {
         LOG("Got temperature request", std::cout, "MQTT SERVER")
-        double cpu_temp = get_cpu_temp_from_db(mysql_connection);
+        double cpu_temp = get_cpu_temp();
         char payload[MAX_MQTT_PAYLOAD];
         sprintf(payload, "%.1f", cpu_temp);
         client->publish(topics[SERVER_RES_TMP], payload, strlen(payload));
@@ -108,6 +109,20 @@ void mqtt_server() {
   LOG("Exiting", std::cout, "MQTT SERVER")
   mysql_close(mysql_connection);
   return;
+}
+
+/**
+ * Get the CPU temperature 
+ * @return Current CPU temperature [C]
+*/
+static double get_cpu_temp() {
+  std::ifstream temp_file;
+  temp_file.open(CPU_TEMP_FILE, std::ios::in);
+  CHECK(!temp_file.is_open(), "Cannot open CPU temperature file", std::cerr)
+  int temp;
+  temp_file >> temp;
+  temp_file.close();
+  return (double) temp / 1000;
 }
 
 double get_cpu_load() {

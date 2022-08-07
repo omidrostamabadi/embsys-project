@@ -217,20 +217,6 @@ static int server_subscribe_topics(mqtt::client *client) {
 }
 
 /**
- * Get the CPU temperature 
- * @return Current CPU temperature [C]
-*/
-static double get_cpu_temp() {
-  std::ifstream temp_file;
-  temp_file.open(CPU_TEMP_FILE, std::ios::in);
-  CHECK(!temp_file.is_open(), "Cannot open CPU temperature file", std::cerr)
-  int temp;
-  temp_file >> temp;
-  temp_file.close();
-  return (double) temp / 1000;
-}
-
-/**
  * Get the last temperature stored in db
  * @param mysql_connection Active MYSQL connection
  * @return Temperature in the last database record
