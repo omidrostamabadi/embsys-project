@@ -45,7 +45,7 @@ std::string wd = "/home/punisher/Documents/courses/Embsys/project/build/";
 /* The directory to save temporary photos at. It is relative to wd */
 std::string photo_path = "photo/";
 
-static MYSQL *mysql_connection = NULL;
+static MYSQL *mysql_connection;
 
 namespace my_program_state
 {

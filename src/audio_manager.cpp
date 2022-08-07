@@ -10,6 +10,8 @@
 #include <ctime>
 #include <unistd.h>
 #include <iterator>
+#include <thread>
+#include <signal.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 #include <sstream>
@@ -44,7 +46,7 @@ void setRecordingSpec(SDL_AudioSpec*);
 void close();                           //frees the allocated buffers and terminates SDL
 void reportError(const char*);          //printing proper error messages to the screen
 void calculate_energy();
-
+void timer_callback_handler(int signum);
 
 
 void start_recording();
@@ -54,6 +56,7 @@ void audio_manager() {
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0) //make sure SDL initilizes correctly
         reportError("Initilizing SDL error.");
     
+    signal(SIGALRM, timer_callback_handler);
     gRecordingDeviceCount = SDL_GetNumAudioDevices(SDL_TRUE); //get total number of recording devices
     std::cout << "Total recording devices found: "<< gRecordingDeviceCount << std::endl;
     
@@ -166,8 +169,8 @@ void stop_recording() {
 void insert_into_db(float energy) {
   char mysql_query_msg[MAX_MYSQL_QUERY];
   sprintf(mysql_query_msg, "INSERT INTO audio_table(ts, audio_energy) VALUES (NOW(), %.2f)", energy);
-  // CHECK_VOID(mysql_query(mysql_connection, mysql_query_msg), "Cannot insert into database", std::cerr)
-  mysql_real_query_nonblocking(mysql_connection, mysql_query_msg, strlen(mysql_query_msg));
+  CHECK_VOID(mysql_query(mysql_connection, mysql_query_msg), "Cannot insert into database", std::cerr)
+  // mysql_real_query_nonblocking(mysql_connection, mysql_query_msg, strlen(mysql_query_msg));
 }
 
 void calculate_energy() {
@@ -196,11 +199,18 @@ void calculate_energy() {
     l_energy *= 1e4;
     eng_file << l_energy << std::endl;
     if(l_energy > sound_threshold) {
+      stop_recording();
+      alarm(5);
       insert_into_db(l_energy);
+      // std::thread tmp_thread = std::thread(insert_into_db, l_energy);
       std::cout << "Energy is " << l_energy << std::endl;
       /* Skip 500ms in time. Since a loud sound in real world usually lasts for a long enough time to
         trigger multiple up thresholds and we do not want to report more than 2 events a second */
       i += spms * 5000; 
     }
   }
+}
+
+void timer_callback_handler(int signum) {
+  start_recording();
 }

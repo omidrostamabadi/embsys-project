@@ -52,7 +52,7 @@ int find_device_rssi() {
   return rssi;
 }
 
-static MYSQL *mysql_connection;
+// static MYSQL *mysql_connection;
 
 void ble_manager() {
   // sleep(7);
@@ -69,7 +69,7 @@ void ble_manager() {
   //   std::cout << "Failed connecting to db :(\n";
   //   exit(EXIT_FAILURE);
   // }
-  // MYSQL *mysql_connection;
+  MYSQL *mysql_connection;
   mysql_connection = mysql_init(NULL);
   std::string user = "omid";
   std::string password = "123456";
