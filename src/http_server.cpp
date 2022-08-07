@@ -420,16 +420,16 @@ void http_server(int argc, char* argv[])
 {
   /* Connect to database */
   mysql_connection = mysql_init(NULL);
-  std::string user = "omid";
-  std::string password = "123456";
-  std::string host_name = "localhost";
-  std::string database_name = "emb";
-  uint32_t port = 3306;
+  // std::string user = "omid";
+  // std::string password = "123456";
+  // std::string host_name = "localhost";
+  // std::string database_name = "emb";
+  // uint32_t port = 3306;
   // CHECK_VOID(connect_to_db(mysql_connection, user, password, host_name, database_name),
   //  "Cannot connect to database", std::cerr)
   MYSQL *mysql_connection_ret = NULL;
-  mysql_connection_ret = mysql_real_connect(mysql_connection, host_name.c_str(), user.c_str(), password.c_str(),
-   database_name.c_str(), port, NULL, 0);
+  mysql_connection_ret = mysql_real_connect(mysql_connection, db_host_name.c_str(), db_user_name.c_str(),
+   db_password.c_str(), db_database_name.c_str(), db_port, NULL, 0);
   if(mysql_connection_ret == NULL) {
     std::cerr << __FILE__ << ":" << __LINE__ << ": Connection to db failed\n";
     return;

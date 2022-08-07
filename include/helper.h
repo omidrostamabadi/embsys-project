@@ -55,6 +55,12 @@ const size_t MAX_MQTT_PAYLOAD = 500;
 /* Maximum MYSQL query string length that can be generated */
 const size_t MAX_MYSQL_QUERY = 500;
 
+const std::string db_user_name = "omid";
+const std::string db_password = "123456";
+const std::string db_host_name = "localhost";
+const std::string db_database_name = "emb";
+const unsigned int db_port = 3306;
+
 /* System camera to get pictures from. This is used by FACE DETECTOR to process the stream and 
   detect faces and by HTTP server to capture and return the picture upon get/capture-photo request */
 extern cv::VideoCapture camera;
