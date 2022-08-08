@@ -199,37 +199,19 @@ static int server_subscribe_topics(mqtt::client *client) {
 }
 
 /**
- * Get the last temperature stored in db
- * @param mysql_connection Active MYSQL connection
- * @return Temperature in the last database record
-*/
-static double get_cpu_temp_from_db(MYSQL *mysql_connection) {
-  char mysql_query[MAX_MYSQL_QUERY];
-  sprintf(mysql_query, "SELECT temp FROM temp_table ORDER BY id DESC LIMIT 1");
-  CHECK(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
-   "Cannot perform MYSQL query for temperature", std::cerr)
-  MYSQL_RES *result = mysql_store_result(mysql_connection);
-  MYSQL_ROW row;
-  row = mysql_fetch_row(result);
-  double temp = atof(row[0]);
-  return temp;
-}
-
-/**
  * Get the last number of faces stored in db
  * @param mysql_connection Active MYSQL connection
  * @return Number of faces in the last database record
 */
-static int get_num_faces_from_db(MYSQL *mysql_connection) {
+static void get_num_faces_from_db(MYSQL *mysql_connection, char *payload) {
   char mysql_query[MAX_MYSQL_QUERY];
-  sprintf(mysql_query, "SELECT num_faces FROM face_table ORDER BY id DESC LIMIT 1");
-  CHECK(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
+  sprintf(mysql_query, "SELECT * FROM face_table ORDER BY id DESC LIMIT 1");
+  CHECK_VOID(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
    "Cannot perform MYSQL query for number of faces", std::cerr)
   MYSQL_RES *result = mysql_store_result(mysql_connection);
   MYSQL_ROW row;
   row = mysql_fetch_row(result);
-  int num_faces = atoi(row[0]);
-  return num_faces;
+  sprintf(payload, "%s at %s", row[2], row[1]);
 }
 
 #endif /* ifdef HELPER_H */

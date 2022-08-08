@@ -25,8 +25,8 @@
 static std::string cpu_load_file_name = "load.txt";
 std::fstream cpu_load_file;
 static double get_cpu_load();
-static double get_audio_energy_from_db(MYSQL *mysql_connection);
-static double get_ble_from_db(MYSQL *mysql_connection);
+static void get_audio_energy_from_db(MYSQL *mysql_connection, char *payload);
+static void get_ble_from_db(MYSQL *mysql_connection, char *payload);
 static double get_cpu_temp();
 
 void mqtt_server() {
@@ -71,9 +71,8 @@ void mqtt_server() {
       /* Handle num faces request */
       else if(msg->get_topic() == topics[SERVER_REQ_NUM_FACES]) {
         LOG("Got temperature request", std::cout, "MQTT SERVER")
-        int num_faces = get_num_faces_from_db(mysql_connection);
         char payload[MAX_MQTT_PAYLOAD];
-        sprintf(payload, "%d", num_faces);
+        get_num_faces_from_db(mysql_connection, payload);
         client->publish(topics[SERVER_RES_NUM_FACES], payload, strlen(payload));
       }
       /* Handle num faces request */
@@ -87,17 +86,15 @@ void mqtt_server() {
       /* Handle num faces request */
       else if(msg->get_topic() == topics[SERVER_REQ_AUDIO]) {
         LOG("Got audio request", std::cout, "MQTT SERVER")
-        double energy = get_audio_energy_from_db(mysql_connection);
         char payload[MAX_MQTT_PAYLOAD];
-        sprintf(payload, "%.2f", energy);
+        get_audio_energy_from_db(mysql_connection, payload);
         client->publish(topics[SERVER_RES_AUDIO], payload, strlen(payload));
       }
       /* Handle num faces request */
       else if(msg->get_topic() == topics[SERVER_REQ_BLE]) {
         LOG("Got audio request", std::cout, "MQTT SERVER")
-        double energy = get_ble_from_db(mysql_connection);
         char payload[MAX_MQTT_PAYLOAD];
-        sprintf(payload, "%.2f", energy);
+        get_ble_from_db(mysql_connection, payload);
         client->publish(topics[SERVER_RES_BLE], payload, strlen(payload));
       }
     }
@@ -140,16 +137,15 @@ double get_cpu_load() {
  * @param mysql_connection Active MYSQL connection
  * @return audio energy in the last database record
 */
-static double get_audio_energy_from_db(MYSQL *mysql_connection) {
+static void get_audio_energy_from_db(MYSQL *mysql_connection, char *payload) {
   char mysql_query[MAX_MYSQL_QUERY];
-  sprintf(mysql_query, "SELECT audio_energy FROM audio_table ORDER BY id DESC LIMIT 1");
-  CHECK(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
+  sprintf(mysql_query, "SELECT * FROM audio_table ORDER BY id DESC LIMIT 1");
+  CHECK_VOID(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
    "Cannot perform MYSQL query for audio energy", std::cerr)
   MYSQL_RES *result = mysql_store_result(mysql_connection);
   MYSQL_ROW row;
   row = mysql_fetch_row(result);
-  double energy = atof(row[0]);
-  return energy;
+  sprintf(payload, "%s at %s", row[2], row[1]);
 }
 
 /**
@@ -157,14 +153,13 @@ static double get_audio_energy_from_db(MYSQL *mysql_connection) {
  * @param mysql_connection Active MYSQL connection
  * @return BLE distance in the last database record
 */
-static double get_ble_from_db(MYSQL *mysql_connection) {
+static void get_ble_from_db(MYSQL *mysql_connection, char *payload) {
   char mysql_query[MAX_MYSQL_QUERY];
-  sprintf(mysql_query, "SELECT dist FROM ble_table ORDER BY id DESC LIMIT 1");
-  CHECK(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
+  sprintf(mysql_query, "SELECT * FROM ble_table ORDER BY id DESC LIMIT 1");
+  CHECK_VOID(mysql_real_query(mysql_connection, mysql_query, strlen(mysql_query)),
    "Cannot perform MYSQL query for BLE", std::cerr)
   MYSQL_RES *result = mysql_store_result(mysql_connection);
   MYSQL_ROW row;
   row = mysql_fetch_row(result);
-  double ble = atof(row[0]);
-  return ble;
+  sprintf(payload, "%s at %s", row[2], row[1]);
 }
