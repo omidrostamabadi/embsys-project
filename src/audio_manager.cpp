@@ -64,10 +64,12 @@ int main() {
         reportError("Initilizing SDL error.");
     
     gRecordingDeviceCount = SDL_GetNumAudioDevices(SDL_TRUE); //get total number of recording devices
-    out_file << "Total recording devices found: "<< gRecordingDeviceCount << std::endl;
+    // out_file << "Total recording devices found: "<< gRecordingDeviceCount << std::endl;
+    LOG("Total recording devices found: " + std::to_string(gRecordingDeviceCount),
+     out_file, "AUDIO MANAGER")
     
-    for (int i=0; i<gRecordingDeviceCount; i++)
-        out_file<<i<<": "<<SDL_GetAudioDeviceName(i, SDL_TRUE);
+    // for (int i=0; i<gRecordingDeviceCount; i++)
+    //     out_file<<i<<": "<<SDL_GetAudioDeviceName(i, SDL_TRUE);
 
     int index;
     int bytesPerSample;
@@ -80,7 +82,9 @@ int main() {
         exit(1);
     }
 
-    out_file << "\nUsing " <<index << ": "<< SDL_GetAudioDeviceName(index, SDL_TRUE)<<" for recording"<<std::endl;
+    // out_file << "\nUsing " <<index << ": "<< SDL_GetAudioDeviceName(index, SDL_TRUE)<<" for recording"<<std::endl;
+    LOG("Recording device in use: " + std::string(SDL_GetAudioDeviceName(index, SDL_TRUE)),
+     out_file, "AUDIO MANAGER")
     //SDL_AudioSpec desiredRecordingSpec, desiredPlaybackSpec;
     setRecordingSpec(&desiredRecordingSpec);
     //opening the device for recording
@@ -125,8 +129,9 @@ int main() {
     act.sa_flags = SA_SIGINFO | SA_RESTART; /* use sa_sigaction (with 3 args instead of 1) */
     //act.sa_flags = 0;
     act.sa_sigaction = alrm_handler;
-    if(sigaction(SIGALRM, &act, NULL))
-      out_file << "Sigaction failed\n";
+    if(sigaction(SIGALRM, &act, NULL)) {
+      LOG("Sigaction failed", out_file, "AUDIO MANAGER");
+    }
 
     // signal(SIGINT, SIG_DFL);
     // if(signal(SIGALRM, timer_callback_handler) == SIG_ERR) {
@@ -197,12 +202,13 @@ void close() {
         gRecordingBuffer = NULL;
     }
     // stop_recording();
-    out_file << "Quitting SDL\n";
+    // out_file << "Quitting SDL\n";
     SDL_Quit();
 }
 
 void reportError(const char* msg) { //reports the proper error message then terminates
-    out_file<<"An error happend. "<<msg<<" "<<"SDL_ERROR: "<<SDL_GetError()<<std::endl;
+    // out_file<<"An error happend. "<<msg<<" "<<"SDL_ERROR: "<<SDL_GetError()<<std::endl;
+    LOG("SDL Error: " + std::string(SDL_GetError()), out_file, "AUDIO MANAGER")
     exit(1);
 }
 
@@ -220,7 +226,7 @@ void insert_into_db(float energy) {
   char mysql_query_msg[MAX_MYSQL_QUERY];
   sprintf(mysql_query_msg, "INSERT INTO audio_table(ts, audio_energy) VALUES (NOW(), %.2f)", energy);
   CHECK_VOID(mysql_query(mysql_connection, mysql_query_msg), "Cannot insert into database", std::cerr)
-  out_file << "DB inserted\n";
+  // out_file << "DB inserted\n";
   // mysql_real_query_nonblocking(mysql_connection, mysql_query_msg, strlen(mysql_query_msg));
 }
 
@@ -251,28 +257,29 @@ void calculate_energy() {
     // eng_file << l_energy << std::endl;
     if(l_energy > sound_threshold) {
       stop_recording();
-      alarm(7);
+      alarm(5);
       // proc = false;
       insert_into_db(l_energy);
       // std::thread tmp_thread = std::thread(insert_into_db, l_energy);
-      out_file << "Energy is " << l_energy << std::endl;
+      // out_file << "Energy is " << l_energy << std::endl;
+      LOG("Energy exceeds maximum -> " + std::to_string(l_energy), out_file, "AUDIO MANAGER")
       /* Skip 500ms in time. Since a loud sound in real world usually lasts for a long enough time to
         trigger multiple up thresholds and we do not want to report more than 2 events a second */
       // i += spms * 5000;
-      out_file << "Returning from calc energy\n";
+      // out_file << "Returning from calc energy\n";
       // sleep(1);
       return; 
     }
   }
 }
 
-void timer_callback_handler(int signum) {
-  out_file << "Timer callback\n";
-  start_recording();
-}
+// void timer_callback_handler(int signum) {
+//   out_file << "Timer callback\n";
+//   start_recording();
+// }
 
 void alrm_handler(int sig, siginfo_t *sig_info, void *void_var) {
-  out_file << "ALRM callback\n";
+  // out_file << "ALRM callback\n";
   start_recording();
   // proc = true;
 }
