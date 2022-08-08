@@ -24,9 +24,11 @@ const int RECORDING_BUFFER_SECONDS = 16;    //buffersize, providing a safe pad o
 
 int gRecordingDeviceCount = 0;          //number of recording devices in host machine
 SDL_AudioSpec gReceivedRecordingSpec;   //the available spec for recording
-uint32_t sound_threshold = 160;
+uint32_t sound_threshold = 400;
 std::string file_name = "eng.txt";
-std::ofstream eng_file;
+// std::ofstream eng_file;
+
+std::ofstream out_file;
 
 //Audio device IDs
 SDL_AudioDeviceID recordingDeviceId = 0;
@@ -53,15 +55,19 @@ void alrm_handler(int sig, siginfo_t *sig_info, void *void_var);
 void start_recording();
 void stop_recording();
 
+bool proc = true;
+
 int main() {
-    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER | SDL_INIT_HAPTIC) < 0) //make sure SDL initilizes correctly
+  out_file.open("outlog.txt", std::ios::out);
+  SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
+    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER) < 0) //make sure SDL initilizes correctly
         reportError("Initilizing SDL error.");
     
     gRecordingDeviceCount = SDL_GetNumAudioDevices(SDL_TRUE); //get total number of recording devices
-    std::cout << "Total recording devices found: "<< gRecordingDeviceCount << std::endl;
+    out_file << "Total recording devices found: "<< gRecordingDeviceCount << std::endl;
     
     for (int i=0; i<gRecordingDeviceCount; i++)
-        std::cout<<i<<": "<<SDL_GetAudioDeviceName(i, SDL_TRUE);
+        out_file<<i<<": "<<SDL_GetAudioDeviceName(i, SDL_TRUE);
 
     int index;
     int bytesPerSample;
@@ -70,11 +76,11 @@ int main() {
 
     index = 0;
     if (index >= gRecordingDeviceCount) {
-        std::cout<<"Error: out of range device selected."<<std::endl;
+        out_file<<"Error: out of range device selected."<<std::endl;
         exit(1);
     }
 
-    std::cout << "\nUsing " <<index << ": "<< SDL_GetAudioDeviceName(index, SDL_TRUE)<<" for recording"<<std::endl;
+    out_file << "\nUsing " <<index << ": "<< SDL_GetAudioDeviceName(index, SDL_TRUE)<<" for recording"<<std::endl;
     //SDL_AudioSpec desiredRecordingSpec, desiredPlaybackSpec;
     setRecordingSpec(&desiredRecordingSpec);
     //opening the device for recording
@@ -89,7 +95,7 @@ int main() {
     gRecordingBuffer = new Uint8[gBufferByteSize];
     memset(gRecordingBuffer, 0, gBufferByteSize);
 
-    eng_file.open(file_name, std::ios::out);
+    // eng_file.open(file_name, std::ios::out);
     SDL_Event e;
 
     /* Connect to database */
@@ -109,7 +115,8 @@ int main() {
       return 0;
     }
 
-    start_recording();
+
+    // start_recording();
 
     struct sigaction act;
     sigemptyset(&act.sa_mask);
@@ -119,19 +126,24 @@ int main() {
     //act.sa_flags = 0;
     act.sa_sigaction = alrm_handler;
     if(sigaction(SIGALRM, &act, NULL))
-      std::cout << "Sigaction failed\n";
+      out_file << "Sigaction failed\n";
 
-    signal(SIGINT, SIG_DFL);
+    // signal(SIGINT, SIG_DFL);
     // if(signal(SIGALRM, timer_callback_handler) == SIG_ERR) {
-    //   std::cout << "Error setting SIGALRM handler\n";
+    //   out_file << "Error setting SIGALRM handler\n";
     // }
 
+    // out_file << "Sleeping\n";
+    // sleep(5);
+
+    // start_recording();
+    alarm(5);
     while(true) {
       // if(SDL_PollEvent(&e)) {
       //   if(e.type == SDL_QUIT) {
-      //     LOG("Start exiting", std::cout, "AUDIO MANAGER")
+      //     LOG("Start exiting", out_file, "AUDIO MANAGER")
       //     close();
-      //     LOG("Exiting", std::cout, "AUDIO MANAGER")
+      //     LOG("Exiting", out_file, "AUDIO MANAGER")
       //     return 0;
       //   }
       // }
@@ -139,18 +151,20 @@ int main() {
       /* When ^C is pushed or main window is closed, SDL library catches SIGINT to perform a clean exit.
         Once this event is generated, we perform a clean up and then end. */
       // if(e.type == SDL_QUIT) {
-      //   LOG("Start exiting", std::cout, "AUDIO MANAGER")
+      //   LOG("Start exiting", out_file, "AUDIO MANAGER")
       //   close();
-      //   LOG("Exiting", std::cout, "AUDIO MANAGER")
+      //   LOG("Exiting", out_file, "AUDIO MANAGER")
       //   return 0;
       // }
 
       /* Time resolution of audio manager is not required to be sub-second, because there is no point in that.
         It saves CPU a lot to let this thread sleep for a few hundereds of miliseconds since in practice 
         a sound will at least last for 500 ms so we can catch that. */
-      usleep(5 * 1000);
+      // usleep(10 * 1000);
+      // SDL_Delay(100);
+      // out_file << "While...\n";
     }
-    LOG("Exiting", std::cout, "AUDIO MANAGER")
+    LOG("Exiting", out_file, "AUDIO MANAGER")
     close();
 }
 
@@ -165,11 +179,15 @@ void setRecordingSpec(SDL_AudioSpec* desired) {
 
 void audioRecordingCallback(void* userdata, Uint8* stream, int len) {
     // from stream to buffer
+    // if(proc == false)
+    //   return;
     memcpy(&gRecordingBuffer[0], stream, len);
     gBufferBytePosition += len;
     // stop_recording();
     calculate_energy();
+    // out_file << "After calc energy\n";
     gBufferBytePosition = 0;
+    // stop_recording();
 }
 
 void close() {
@@ -179,12 +197,12 @@ void close() {
         gRecordingBuffer = NULL;
     }
     // stop_recording();
-    std::cout << "Quitting SDL\n";
+    out_file << "Quitting SDL\n";
     SDL_Quit();
 }
 
 void reportError(const char* msg) { //reports the proper error message then terminates
-    std::cout<<"An error happend. "<<msg<<" "<<"SDL_ERROR: "<<SDL_GetError()<<std::endl;
+    out_file<<"An error happend. "<<msg<<" "<<"SDL_ERROR: "<<SDL_GetError()<<std::endl;
     exit(1);
 }
 
@@ -202,6 +220,7 @@ void insert_into_db(float energy) {
   char mysql_query_msg[MAX_MYSQL_QUERY];
   sprintf(mysql_query_msg, "INSERT INTO audio_table(ts, audio_energy) VALUES (NOW(), %.2f)", energy);
   CHECK_VOID(mysql_query(mysql_connection, mysql_query_msg), "Cannot insert into database", std::cerr)
+  out_file << "DB inserted\n";
   // mysql_real_query_nonblocking(mysql_connection, mysql_query_msg, strlen(mysql_query_msg));
 }
 
@@ -229,27 +248,31 @@ void calculate_energy() {
     }
     l_energy /= (l_end - l_start);
     l_energy *= 1e4;
-    eng_file << l_energy << std::endl;
+    // eng_file << l_energy << std::endl;
     if(l_energy > sound_threshold) {
-      stop_recording();
-      alarm(5);
+      // stop_recording();
+      // alarm(7);
+      // proc = false;
       insert_into_db(l_energy);
       // std::thread tmp_thread = std::thread(insert_into_db, l_energy);
-      std::cout << "Energy is " << l_energy << std::endl;
+      out_file << "Energy is " << l_energy << std::endl;
       /* Skip 500ms in time. Since a loud sound in real world usually lasts for a long enough time to
         trigger multiple up thresholds and we do not want to report more than 2 events a second */
-      i += spms * 5000;
+      // i += spms * 5000;
+      out_file << "Returning from calc energy\n";
+      sleep(1);
       return; 
     }
   }
 }
 
 void timer_callback_handler(int signum) {
-  std::cout << "Timer callback\n";
+  out_file << "Timer callback\n";
   start_recording();
 }
 
 void alrm_handler(int sig, siginfo_t *sig_info, void *void_var) {
-  std::cout << "ALRM callback\n";
+  out_file << "ALRM callback\n";
   start_recording();
+  // proc = true;
 }
