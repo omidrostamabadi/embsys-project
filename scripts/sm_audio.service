@@ -1,13 +1,12 @@
 [Unit]
 Description=Smart Home Audio Management
-Requires=mysql.service sound.target
-After=multi-user.target mysql.service sound.target
+Requires=mysql.service
+After=multi-user.target mysql.service
  
 [Service]
 Type=simple
 User=punisher
 Group=punisher
-Environment="XDG_RUNTIME_DIR=/run/user/1000"
 Environment="PULSE_RUNTIME_PATH=/run/user/1000/pulse/"
 ExecStart=/home/punisher/Documents/courses/Embsys/project/build/bin/audio_manager
 WorkingDirectory=/home/punisher/Documents/courses/Embsys/project/build/
