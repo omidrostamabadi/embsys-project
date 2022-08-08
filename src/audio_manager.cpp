@@ -47,6 +47,7 @@ void close();                           //frees the allocated buffers and termin
 void reportError(const char*);          //printing proper error messages to the screen
 void calculate_energy();
 void timer_callback_handler(int signum);
+void alrm_handler(int sig, siginfo_t *sig_info, void *void_var);
 
 
 void start_recording();
@@ -56,7 +57,6 @@ int main() {
     if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER | SDL_INIT_HAPTIC) < 0) //make sure SDL initilizes correctly
         reportError("Initilizing SDL error.");
     
-    signal(SIGALRM, timer_callback_handler);
     gRecordingDeviceCount = SDL_GetNumAudioDevices(SDL_TRUE); //get total number of recording devices
     std::cout << "Total recording devices found: "<< gRecordingDeviceCount << std::endl;
     
@@ -111,22 +111,44 @@ int main() {
 
     start_recording();
 
+    struct sigaction act;
+    sigemptyset(&act.sa_mask);
+    /* if SA_RESTART is not set, causes weird behaviour when calling freadln
+    returns EOF from input */
+    act.sa_flags = SA_SIGINFO | SA_RESTART; /* use sa_sigaction (with 3 args instead of 1) */
+    //act.sa_flags = 0;
+    act.sa_sigaction = alrm_handler;
+    if(sigaction(SIGALRM, &act, NULL))
+      std::cout << "Sigaction failed\n";
+
+    signal(SIGINT, SIG_DFL);
+    // if(signal(SIGALRM, timer_callback_handler) == SIG_ERR) {
+    //   std::cout << "Error setting SIGALRM handler\n";
+    // }
+
     while(true) {
-      SDL_PollEvent(&e);
+      // if(SDL_PollEvent(&e)) {
+      //   if(e.type == SDL_QUIT) {
+      //     LOG("Start exiting", std::cout, "AUDIO MANAGER")
+      //     close();
+      //     LOG("Exiting", std::cout, "AUDIO MANAGER")
+      //     return 0;
+      //   }
+      // }
 
       /* When ^C is pushed or main window is closed, SDL library catches SIGINT to perform a clean exit.
         Once this event is generated, we perform a clean up and then end. */
-      if(e.type == SDL_QUIT) {
-        LOG("Start exiting", std::cout, "AUDIO MANAGER")
-        close();
-        LOG("Exiting", std::cout, "AUDIO MANAGER")
-        return 0;
-      }
+      // if(e.type == SDL_QUIT) {
+      //   LOG("Start exiting", std::cout, "AUDIO MANAGER")
+      //   close();
+      //   LOG("Exiting", std::cout, "AUDIO MANAGER")
+      //   return 0;
+      // }
 
       /* Time resolution of audio manager is not required to be sub-second, because there is no point in that.
         It saves CPU a lot to let this thread sleep for a few hundereds of miliseconds since in practice 
         a sound will at least last for 500 ms so we can catch that. */
-      usleep(1 * 1000);
+      usleep(5 * 1000);
     }
     LOG("Exiting", std::cout, "AUDIO MANAGER")
     close();
@@ -216,11 +238,18 @@ void calculate_energy() {
       std::cout << "Energy is " << l_energy << std::endl;
       /* Skip 500ms in time. Since a loud sound in real world usually lasts for a long enough time to
         trigger multiple up thresholds and we do not want to report more than 2 events a second */
-      i += spms * 5000; 
+      i += spms * 5000;
+      return; 
     }
   }
 }
 
 void timer_callback_handler(int signum) {
+  std::cout << "Timer callback\n";
+  start_recording();
+}
+
+void alrm_handler(int sig, siginfo_t *sig_info, void *void_var) {
+  std::cout << "ALRM callback\n";
   start_recording();
 }
