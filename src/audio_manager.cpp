@@ -137,7 +137,7 @@ int main() {
     // sleep(5);
 
     // start_recording();
-    alarm(5);
+    alarm(2);
     while(true) {
       // if(SDL_PollEvent(&e)) {
       //   if(e.type == SDL_QUIT) {
@@ -250,8 +250,8 @@ void calculate_energy() {
     l_energy *= 1e4;
     // eng_file << l_energy << std::endl;
     if(l_energy > sound_threshold) {
-      // stop_recording();
-      // alarm(7);
+      stop_recording();
+      alarm(7);
       // proc = false;
       insert_into_db(l_energy);
       // std::thread tmp_thread = std::thread(insert_into_db, l_energy);
@@ -260,7 +260,7 @@ void calculate_energy() {
         trigger multiple up thresholds and we do not want to report more than 2 events a second */
       // i += spms * 5000;
       out_file << "Returning from calc energy\n";
-      sleep(1);
+      // sleep(1);
       return; 
     }
   }
