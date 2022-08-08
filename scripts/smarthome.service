@@ -7,6 +7,10 @@ After=multi-user.target mysql.service NetworkManager.service bluetooth.service
 Type=simple
 StandardInput=tty
 TTYPath=/dev/tty26
+User=punisher
+Group=punisher
+Environment="XDG_RUNTIME_DIR=/run/user/1000"
+Environment="PULSE_RUNTIME_PATH=/run/user/1000/pulse/"
 ExecStart=/home/punisher/Documents/courses/Embsys/project/build/bin/main 0.0.0.0 8080
 WorkingDirectory=/home/punisher/Documents/courses/Embsys/project/build/
 StandardOutput=journal+console

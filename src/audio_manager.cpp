@@ -53,7 +53,7 @@ void start_recording();
 void stop_recording();
 
 void audio_manager() {
-    if (SDL_Init(SDL_INIT_EVERYTHING) < 0) //make sure SDL initilizes correctly
+    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS) < 0) //make sure SDL initilizes correctly
         reportError("Initilizing SDL error.");
     
     signal(SIGALRM, timer_callback_handler);
