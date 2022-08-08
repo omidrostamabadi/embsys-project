@@ -24,8 +24,6 @@ double get_distance(int rssi) {
 
 int  scan_ble_devices() {
   std::string cmd = "btmgmt find > " + out_file;
-  // std::string cmd = "echo This kossher mamad rssi -82 javadi Redmi 9 > " + out_file;
-  // std::string cmd = "bin/scan_devs.sh";
   return system(cmd.c_str());
 }
 
@@ -40,7 +38,7 @@ int find_device_rssi() {
 
   std::stringstream buf;
   buf << file.rdbuf();
-  std::string file_cont = buf.str(); std::cout << "Contents:\n" << file_cont << std::endl;
+  std::string file_cont = buf.str();
   size_t loc = file_cont.find(dev_name, 0);
   if(loc == std::string::npos) {
     LOG("Cannot find the device", std::cout, "BLE MANAGER")
@@ -54,32 +52,10 @@ int find_device_rssi() {
   return rssi;
 }
 
-// static MYSQL *mysql_connection2;
-
 void ble_manager() {
-  // sleep(7);
-  std::cout << "Started ble\n";
-  /* Connect to database */
-  // MYSQL *mysql_connection2 = mysql_init(NULL);
-  // MYSQL *mysql_connection_ret2 = NULL;
-  // mysql_connection_ret2 = mysql_real_connect(mysql_connection2, "localhost", "omid", "123456",
-  //  "emb", 0, NULL, 0);
-  // if(mysql_connection_ret2 != NULL) {
-  //   std::cout << "Connected to db!\n";
-  // }
-  // else {
-  //   std::cout << "Failed connecting to db :(\n";
-  //   exit(EXIT_FAILURE);
-  // }
+  LOG("Started", std::cout, "BLE MANAGER")
   MYSQL *mysql_connection2;
   mysql_connection2 = mysql_init(NULL);
-  // std::string user = "omid";
-  // std::string password = "123456";
-  // std::string host_name = "localhost";
-  // std::string database_name = "emb";
-  // uint32_t port = 3306;
-  // CHECK_VOID(connect_to_db(mysql_connection2, user, password, host_name, database_name),
-  //  "Cannot connect to database", std::cerr)
   MYSQL *mysql_connection_ret = NULL;
   mysql_connection_ret = mysql_real_connect(mysql_connection2, db_host_name.c_str(), db_user_name.c_str(),
    db_password.c_str(), db_database_name.c_str(), db_port, NULL, 0);
@@ -87,11 +63,6 @@ void ble_manager() {
     std::cerr << __FILE__ << ":" << __LINE__ << ": Connection to db failed\n";
     return;
   }
-  // connect_to_db(mysql_connection2, user, password, host_name, database_name);
-  // MYSQL *mysql_connection_ret2 = mysql_real_connect(mysql_connection2, host_name.c_str(), user.c_str(),
-  //  password.c_str(), database_name.c_str(), 3306, NULL, 0);
-  std::cout << "ERRNO is " << mysql_errno(mysql_connection2) << std::endl;
-  std::cout << "Error is " << mysql_error(mysql_connection2) << std::endl;
   
   int rssi;
   double distance;
@@ -99,7 +70,6 @@ void ble_manager() {
   int status;
   while(!finish) {
     status = scan_ble_devices();
-    std::cout << "Status is " << status << std::endl;
     if(WIFSIGNALED(status) && (WTERMSIG(status) == SIGINT || WTERMSIG(status) == SIGQUIT)) {
       finish = true;
       LOG("Signaled", std::cout, "BLE MANAGER")
@@ -119,8 +89,7 @@ void ble_manager() {
       sprintf(mysql_query_msg, "INSERT INTO ble_table(ts, dist) VALUES (NOW(), %.2f)", distance);
       CHECK_VOID(mysql_query(mysql_connection2, mysql_query_msg), "Cannot insert into database", std::cerr)
     }
-    std::cout << "RSSI is " << rssi << std::endl;
-    std::cout << "Distance is " << distance << std::endl;
+    LOG("Distance is " + std::to_string(distance), std::cout, "BLE MANAGER")
   }
   LOG("Exiting", std::cout, "BLE MANAGER")
 }

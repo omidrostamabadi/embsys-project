@@ -150,63 +150,6 @@ private:
         write_response();
     }
 
-
-    // void send_file(beast::string_view target)
-    // {
-    //     // Request path must be absolute and not contain "..".
-    //     if (target.empty() || target[0] != '/' || target.find("..") != std::string::npos)
-    //     {
-    //         send_bad_response(
-    //             http::status::not_found,
-    //             "File not found\r\n");
-    //         return;
-    //     }
-
-    //     std::string full_path = doc_root_;
-    //     full_path.append(
-    //         target.data(),
-    //         target.size());
-
-    //     http::file_body::value_type file;
-    //     beast::error_code ec;
-    //     file.open(
-    //         full_path.c_str(),
-    //         beast::file_mode::read,
-    //         ec);
-    //     if(ec)
-    //     {
-    //         send_bad_response(
-    //             http::status::not_found,
-    //             "File not found\r\n");
-    //         return;
-    //     }
-
-    //     file_response_.emplace(
-    //         std::piecewise_construct,
-    //         std::make_tuple(),
-    //         std::make_tuple(alloc_));
-
-    //     file_response_->result(http::status::ok);
-    //     file_response_->keep_alive(false);
-    //     file_response_->set(http::field::server, "Beast");
-    //     file_response_->set(http::field::content_type, mime_type(std::string(target)));
-    //     file_response_->body() = std::move(file);
-    //     file_response_->prepare_payload();
-
-    //     file_serializer_.emplace(*file_response_);
-
-    //     http::async_write(
-    //         socket_,
-    //         *file_serializer_,
-    //         [this](beast::error_code ec, std::size_t)
-    //         {
-    //             socket_.shutdown(tcp::socket::shutdown_send, ec);
-    //             file_serializer_.reset();
-    //             file_response_.reset();
-    //             accept();
-    //         });
-    // }
-
     bool check_file_request() {
       std::cout << "Looking for " << request_.target() << std::endl;
       bool exs = (access((std::string(".") + std::string(request_.target())).c_str(), F_OK) != -1);
@@ -242,20 +185,7 @@ private:
               << "\">see</a>"
               <<  "</body>\n"
               <<  "</html>\n";
-        }
-        else if(request_.target() == "/time")
-        {
-            response_.set(http::field::content_type, "text/html");
-            beast::ostream(response_.body())
-                <<  "<html>\n"
-                <<  "<head><title>Current time</title></head>\n"
-                <<  "<body>\n"
-                <<  "<h1>Current time</h1>\n"
-                <<  "<p>The current time is "
-                <<  my_program_state::now()
-                <<  " seconds since the epoch.</p>\n"
-                <<  "</body>\n"
-                <<  "</html>\n";
+              return;
         }
         else
         {
@@ -263,10 +193,8 @@ private:
             "HTTP SERVER")
           auto target = request_.target();
           size_t loc = target.find_first_of('?', 0);
-          std::cout << "Loc = " << loc << std::endl;
           std::string req_topic = target.substr(0, loc).to_string();
           std::string num = target.substr(loc + 1).to_string();
-          std::cout << "Topic = " << req_topic << " Num = " << num << std::endl;
           int n = atoi(num.c_str());
           if(req_topic != "/num-faces" && req_topic != "/audio-energy" && req_topic != "/ble-distance") {
             LOG(std::string("Unrecogonized topic: ") + req_topic, std::cout, "HTTP SERVER")
@@ -321,7 +249,7 @@ private:
               <<  " seconds since the epoch.</p>\n"
               <<  "</body>\n"
               <<  "</html>\n";
-
+              return;
         }
 
         file_processing:
@@ -418,15 +346,9 @@ http_server(tcp::acceptor& acceptor, tcp::socket& socket)
 
 void http_server(int argc, char* argv[])
 {
+  LOG("Started", std::cout, "HTTP SERVER")
   /* Connect to database */
   mysql_connection = mysql_init(NULL);
-  // std::string user = "omid";
-  // std::string password = "123456";
-  // std::string host_name = "localhost";
-  // std::string database_name = "emb";
-  // uint32_t port = 3306;
-  // CHECK_VOID(connect_to_db(mysql_connection, user, password, host_name, database_name),
-  //  "Cannot connect to database", std::cerr)
   MYSQL *mysql_connection_ret = NULL;
   mysql_connection_ret = mysql_real_connect(mysql_connection, db_host_name.c_str(), db_user_name.c_str(),
    db_password.c_str(), db_database_name.c_str(), db_port, NULL, 0);

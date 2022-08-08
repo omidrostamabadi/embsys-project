@@ -105,8 +105,6 @@ void http_server(int argc, char* argv[]);
 /* MQTT system thread function */
 void mqtt_server();
 
-// void audio_manager();
-
 void ble_manager();
 
 /**
@@ -172,33 +170,6 @@ static cv::Mat get_current_frame() {
   camera >> tmp_frame;
   return tmp_frame;
 }
-
-/**
- * Connect to MySQL database with specified parameteres
- * @param mysql_connection Represents the established connection if connection succeeds
- * @param user Username for the database
- * @param password Password for user
- * @param host_name Hostname where MySQL server resides
- * @param database_name The name of the database to connect
- * @return Returns 0 on success, 1 otherwise
-*/
-// static int connect_to_db(MYSQL *mysql_connection, std::string user, std::string password, std::string host_name,
-//  std::string database_name, unsigned int port = 3306) {
-//   db_mtx.lock();
-//   MYSQL *mysql_connection_ret = NULL;
-//   mysql_connection_ret = mysql_real_connect(mysql_connection, host_name.c_str(), user.c_str(), password.c_str(),
-//    database_name.c_str(), port, NULL, 0);
-//   if(mysql_connection_ret == NULL) {
-//     std::cout << "Connection to database failed\n";
-//     std::cout << "Database input params:\n";
-//     std::cout << "Username: " << user << " Password: " << password << " Hostname: " <<
-//      host_name << " Database Name: " << database_name << std::endl;
-//     db_mtx.unlock();
-//     return EXIT_FAILURE;
-//   }
-//   db_mtx.unlock();
-//   return EXIT_SUCCESS;
-// }
 
 /**
  * Creates new MQTT client and connects it to server_uri
