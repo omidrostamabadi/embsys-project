@@ -1,17 +1,15 @@
 [Unit]
-Description=Smart Home Management
-Requires=mysql.service NetworkManager.service bluetooth.service
-After=multi-user.target mysql.service NetworkManager.service bluetooth.service
+Description=Smart Home Audio Management
+Requires=mysql.service sound.target
+After=multi-user.target mysql.service sound.target
  
 [Service]
 Type=simple
-StandardInput=tty
-TTYPath=/dev/tty26
-User=root
-Group=root
+User=punisher
+Group=punisher
 Environment="XDG_RUNTIME_DIR=/run/user/1000"
 Environment="PULSE_RUNTIME_PATH=/run/user/1000/pulse/"
-ExecStart=/home/punisher/Documents/courses/Embsys/project/build/bin/main 0.0.0.0 8080
+ExecStart=/home/punisher/Documents/courses/Embsys/project/build/bin/audio_manager
 WorkingDirectory=/home/punisher/Documents/courses/Embsys/project/build/
 StandardOutput=journal+console
 StandardError=journal+console

@@ -105,7 +105,7 @@ void http_server(int argc, char* argv[]);
 /* MQTT system thread function */
 void mqtt_server();
 
-void audio_manager();
+// void audio_manager();
 
 void ble_manager();
 

@@ -16,7 +16,7 @@
 #include <SDL2/SDL_audio.h>
 #include <sstream>
 #include <mysql/mysql.h>
-#include <helper.h>
+#include <audio_helper.h>
 
 // defining global constants
 const int MAX_RECORDING_SECONDS = 15;       //maximum time of recording
@@ -52,8 +52,8 @@ void timer_callback_handler(int signum);
 void start_recording();
 void stop_recording();
 
-void audio_manager() {
-    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS) < 0) //make sure SDL initilizes correctly
+int main() {
+    if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER | SDL_INIT_HAPTIC) < 0) //make sure SDL initilizes correctly
         reportError("Initilizing SDL error.");
     
     signal(SIGALRM, timer_callback_handler);
@@ -74,7 +74,7 @@ void audio_manager() {
         exit(1);
     }
 
-    std::cout << "Using " <<index << ": "<< SDL_GetAudioDeviceName(index, SDL_TRUE)<<" for recording"<<std::endl;
+    std::cout << "\nUsing " <<index << ": "<< SDL_GetAudioDeviceName(index, SDL_TRUE)<<" for recording"<<std::endl;
     //SDL_AudioSpec desiredRecordingSpec, desiredPlaybackSpec;
     setRecordingSpec(&desiredRecordingSpec);
     //opening the device for recording
@@ -106,22 +106,21 @@ void audio_manager() {
    db_password.c_str(), db_database_name.c_str(), db_port, NULL, 0);
     if(mysql_connection_ret == NULL) {
       std::cerr << __FILE__ << ":" << __LINE__ << ": Connection to db failed\n";
-      return;
+      return 0;
     }
 
     start_recording();
 
-    while(!finish) {
+    while(true) {
       SDL_PollEvent(&e);
 
       /* When ^C is pushed or main window is closed, SDL library catches SIGINT to perform a clean exit.
         Once this event is generated, we perform a clean up and then end. */
       if(e.type == SDL_QUIT) {
-        LOG("EXITING", std::cout, "AUDIO MANAGER")
+        LOG("Start exiting", std::cout, "AUDIO MANAGER")
         close();
-        LOG("Setting finish flag", std::cout, "AUDIO MANAGER")
-        finish = true;
-        return;
+        LOG("Exiting", std::cout, "AUDIO MANAGER")
+        return 0;
       }
 
       /* Time resolution of audio manager is not required to be sub-second, because there is no point in that.
@@ -152,10 +151,13 @@ void audioRecordingCallback(void* userdata, Uint8* stream, int len) {
 }
 
 void close() {
+    stop_recording();
     if (gRecordingBuffer != NULL) {
         delete[] gRecordingBuffer;
         gRecordingBuffer = NULL;
     }
+    // stop_recording();
+    std::cout << "Quitting SDL\n";
     SDL_Quit();
 }
 
